@@ -1,0 +1,48 @@
+# MAPbI3, illuminated
+#
+# Article Table 1 / Supplementary Table S4.
+#
+# Units: energies eV (vacuum scale), concentrations m^-3, lengths m,
+# mobilities m^2 V^-1 s^-1, temperatures K.
+
+name = "MAPbI3, illuminated"
+
+# Fixed properties, from the literature.
+[material]
+name = "MAPbI3"
+E_c = -3.93  # eV
+E_v = -5.43  # eV
+eps_r = 32.0  # -
+m_eff_h = 0.35  # m*/m_e
+m_eff_e = 0.35  # m*/m_e
+
+# Measured geometry. `area` only converts current to density.
+[device]
+thickness = 0.00105  # m
+area = 2.01e-05  # m^2
+temperature = 300.0  # K
+
+# The five hand-selected parameters (Table S2 'Variable').
+[params]
+mu_0 = 0.023  # m^2 V^-1 s^-1
+N_t = 3.45e+16  # m^-3
+E_t = -4.715  # eV
+T_t = 95.0  # K
+E_F0 = -4.746  # eV
+
+# Optional. Every default follows the published equation; the prototype
+# spreadsheet's readings are the alternatives. See section 7 of
+# docs/ASCLC_spec.md and docs/prototype_differences.md before changing one.
+[model]
+# trap_profile = "si_biexponential"   # prototype_sech | gaussian
+# gamma_model  = "SI-M4"             # Tt/T | Tt/(T+Tt)
+# theta_model  = "absolute_over_total"
+# space_charge = "injected_total"
+# constants    = "codata"            # or "prototype"
+
+# Optional numerical choices.
+[numerics]
+V_max = 3.0
+# n_points = 3001
+# window   = 7    # points per local slope fit
+# bin_size = 1

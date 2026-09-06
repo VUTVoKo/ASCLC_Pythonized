@@ -6,12 +6,14 @@ The tests fall into three groups: analytic identities that must hold whatever
 the parameters (normalizations, the Mott-Gurney limit), consistency between two
 independent routes to the same quantity (the DOS integral against the effective
 density of states), and regression guards on the specific numbers observed in
-the reference workbook.
+the prototype spreadsheet.
 """
 
 from __future__ import annotations
 
+import os
 import warnings
+from dataclasses import replace
 
 import numpy as np
 import pytest
@@ -19,28 +21,31 @@ import pytest
 from asclc import (
     CODATA,
     MAPBBR3,
+    MAPBBR3_S2,
     MAPBI3,
-    WORKBOOK_S2,
     Constants,
     Device,
     EnergyGrid,
     GammaModel,
     Material,
     ModelParams,
+    ThetaModel,
     TrapProfile,
     analyse_jv,
     carrier_densities,
     effective_dos,
+    fermi_dirac,
+    gamma_from_trap_temperature,
+    load_config,
     load_jv,
     local_loglog_slope,
     model_curve,
     trap_dos,
     trap_dos_norm,
-    fermi_dirac,
     valence_band_dos,
 )
 
-MATERIAL, DEVICE, PARAMS = WORKBOOK_S2
+MATERIAL, DEVICE, PARAMS = MAPBBR3_S2
 
 
 # --------------------------------------------------------------------------- #
@@ -53,13 +58,13 @@ MATERIAL, DEVICE, PARAMS = WORKBOOK_S2
     [
         (TrapProfile.SI_BIEXPONENTIAL, 1.0),
         (TrapProfile.GAUSSIAN, 1.0),
-        (TrapProfile.WORKBOOK_SECH, np.pi / 4),
+        (TrapProfile.PROTOTYPE_SECH, np.pi / 4),
     ],
 )
 def test_trap_dos_normalization(profile: TrapProfile, expected_factor: float) -> None:
     """Each profile integrates to its documented multiple of N_t.
 
-    The pi/4 for the workbook variant is why it exists as a separate option; if
+    The pi/4 for the prototype variant is why it exists as a separate option; if
     this passes with 1.0 the sech form has been swapped for the biexponential.
     """
     kT_t = CODATA.kT_eV(PARAMS.T_t)
@@ -77,7 +82,7 @@ def test_trap_profiles_share_peak_height() -> None:
     """
     E = np.array([PARAMS.E_t])
     si = trap_dos(E, PARAMS, profile=TrapProfile.SI_BIEXPONENTIAL)[0]
-    wb = trap_dos(E, PARAMS, profile=TrapProfile.WORKBOOK_SECH)[0]
+    wb = trap_dos(E, PARAMS, profile=TrapProfile.PROTOTYPE_SECH)[0]
     assert si == pytest.approx(wb, rel=1e-12)
 
 
@@ -139,18 +144,23 @@ def test_dos_integral_reproduces_effective_dos() -> None:
 
 
 def test_carrier_densities_theta_identity() -> None:
-    """p_s is absolute; Theta divides by the INJECTED total, Eq (S12).
+    """By default Theta is Eq (S12) as printed: p_f over the absolute total.
 
-    The denominator is the injected total, not the absolute p_s, which would
-    carry the equilibrium trapped population.
+    The prototype spreadsheet divides by the injected total instead, which is a
+    different quantity by the whole equilibrium population; the two are more
+    than 3x apart over this sweep.
     """
     E_F = np.linspace(PARAMS.E_F0 - 0.02, MATERIAL.E_v + 0.05, 51)
     d = carrier_densities(E_F, MATERIAL, DEVICE, PARAMS)
     assert d.p_s == pytest.approx(d.p_f + d.p_t, rel=1e-12)
-    assert d.theta_p == pytest.approx(d.p_f / d.p_s_injected, rel=1e-12)
-    # the absolute and injected denominators differ by more than 3x here
-    naive = d.p_f / d.p_s
-    assert np.max(d.theta_p / naive) > 3.0
+    assert d.theta_p == pytest.approx(d.p_f / d.p_s, rel=1e-12)
+
+    proto = carrier_densities(
+        E_F, MATERIAL, DEVICE, PARAMS,
+        theta_model=ThetaModel.ABSOLUTE_OVER_INJECTED,
+    )
+    assert proto.theta_p == pytest.approx(d.p_f / d.p_s_injected, rel=1e-12)
+    assert np.max(proto.theta_p / d.theta_p) > 3.0
 
 
 def test_injected_total_is_exactly_zero_at_equilibrium() -> None:
@@ -265,7 +275,7 @@ def test_local_slope_recovers_arbitrary_exponent(exponent: float) -> None:
 def test_local_slope_rejects_degenerate_window() -> None:
     """A window of 1 must raise rather than silently return zero slopes.
 
-    The reference workbook's binning cell is set to 0, making every LINEST call a
+    The prototype's binning cell is set to 0, making every LINEST call a
     one-point regression that returns 0, which propagates an upper-envelope p_t
     into every downstream quantity.
     """
@@ -328,11 +338,11 @@ def test_model_curve_is_monotonic_in_voltage() -> None:
 def test_model_pt_saturates_at_trap_total() -> None:
     """Deep in the sweep p_t must approach the trap normalization.
 
-    With the biexponential profile that is N_t; with the workbook profile it is
+    With the biexponential profile that is N_t; with the prototype profile it is
     (pi/4) N_t. This is the property Supplementary Note A6 relies on when it
     reads N_t off the saturation of p_t.
     """
-    for profile in (TrapProfile.SI_BIEXPONENTIAL, TrapProfile.WORKBOOK_SECH):
+    for profile in (TrapProfile.SI_BIEXPONENTIAL, TrapProfile.PROTOTYPE_SECH):
         curve = model_curve(
             PARAMS, MATERIAL, DEVICE, n_points=801, profile=profile
         )
@@ -356,21 +366,61 @@ def test_model_curve_is_pure() -> None:
 
 
 def test_gamma_models_differ_as_documented() -> None:
-    """Tt/T = 0.1003 and Tt/(T+Tt) = 0.0912 for the workbook configuration."""
-    from asclc import gamma_from_trap_temperature
-
+    """Tt/T = 0.1003, Note M4 gives 0.5, and Tt/(T+Tt) = 0.0912 here."""
     a = gamma_from_trap_temperature(PARAMS, DEVICE, model=GammaModel.TT_OVER_T)
     b = gamma_from_trap_temperature(
         PARAMS, DEVICE, model=GammaModel.TT_OVER_T_PLUS_TT
     )
+    c = gamma_from_trap_temperature(PARAMS, DEVICE, model=GammaModel.SI_NOTE_M4)
     assert a == pytest.approx(30.0 / 299.0, rel=1e-12)
     assert b == pytest.approx(30.0 / 329.0, rel=1e-12)
+    assert c == 0.5
+
+
+def test_si_note_m4_gamma_is_one_over_the_mark_helfrich_exponent() -> None:
+    """Note M4 as printed: gamma = T/(T_t + T) for T_t >= T, else 0.5.
+
+    T/(T_t + T) is 1/(1 + T_t/T), i.e. 1/m for the trap-filled-limit exponent
+    m = 1 + T_t/T of an exponential trap distribution, which is what reconciles
+    Note M4 with the article's own definition gamma = 1/m. Spec section 7.2.
+
+    Note that this is NOT Tt/(T + Tt): that expression appears in no source and
+    is the complement of this one. Earlier revisions of the port carried it
+    mislabelled as the SI's reading.
+    """
+    T = DEVICE.temperature
+    hot = replace(PARAMS, T_t=2.0 * T)  # T_t >= T selects the formula branch
+    g = gamma_from_trap_temperature(hot, DEVICE, model=GammaModel.SI_NOTE_M4)
+
+    assert g == pytest.approx(T / (hot.T_t + T), rel=1e-12)
+    m = 1.0 + hot.T_t / T
+    assert g == pytest.approx(1.0 / m, rel=1e-12)
+    # and it is the complement of the expression it was once confused with
+    other = gamma_from_trap_temperature(
+        hot, DEVICE, model=GammaModel.TT_OVER_T_PLUS_TT
+    )
+    assert g + other == pytest.approx(1.0, rel=1e-12)
+
+
+def test_si_note_m4_takes_the_constant_branch_for_every_published_set() -> None:
+    """Every configuration in the article and the prototype has T_t < T.
+
+    So Note M4 as printed selects its gamma = 0.5 branch throughout, and cannot
+    reproduce the prototype's T_t/T. This is the substance of spec section 7.2.
+    """
+    configs = [(DEVICE, PARAMS)] + [
+        (device, params) for _, device, params in PUBLISHED.values()
+    ]
+    for device, params in configs:
+        assert params.T_t < device.temperature
+        g = gamma_from_trap_temperature(
+            params, device, model=GammaModel.SI_NOTE_M4
+        )
+        assert g == 0.5
 
 
 def test_gamma_warns_when_out_of_range() -> None:
     """Note M4 states gamma <= 0.5; a hot trap breaks that and must warn."""
-    from asclc import gamma_from_trap_temperature
-
     hot = ModelParams(mu_0=2.7e-3, N_t=4.7e16, E_t=-4.82, T_t=400.0, E_F0=-4.84)
     with pytest.warns(RuntimeWarning, match="outside"):
         gamma_from_trap_temperature(hot, DEVICE, model=GammaModel.TT_OVER_T)
@@ -404,9 +454,9 @@ def test_device_rejects_nonpositive() -> None:
 # --------------------------------------------------------------------------- #
 
 
-def test_workbook_constants_are_close_to_codata() -> None:
-    """The workbook's rounded constants agree with CODATA to under 0.1 %."""
-    wb = Constants.workbook()
+def test_prototype_constants_are_close_to_codata() -> None:
+    """The prototype's rounded constants agree with CODATA to under 0.1 %."""
+    wb = Constants.prototype()
     for name in ("e", "k_B", "h", "eps_0", "m_0"):
         assert getattr(wb, name) == pytest.approx(getattr(CODATA, name), rel=1e-3), name
 
@@ -414,7 +464,7 @@ def test_workbook_constants_are_close_to_codata() -> None:
 def test_energy_grid_resolves_the_trap() -> None:
     """The default trap mesh must integrate the trap to its analytic norm."""
     grid = EnergyGrid.build(MATERIAL, PARAMS)
-    for profile in (TrapProfile.SI_BIEXPONENTIAL, TrapProfile.WORKBOOK_SECH):
+    for profile in (TrapProfile.SI_BIEXPONENTIAL, TrapProfile.PROTOTYPE_SECH):
         g = trap_dos(grid.E_trap, PARAMS, profile=profile)
         total = np.trapezoid(g, grid.E_trap)
         assert total == pytest.approx(
@@ -448,7 +498,7 @@ def test_voltage_vanishes_at_zero_bias() -> None:
     """V(E_F0) must be exactly zero.
 
     At E_F = E_F0 no charge has been injected, so the space charge and hence the
-    voltage must vanish. The workbook's own model columns cross zero at E_F0,
+    voltage must vanish. The prototype's own model columns cross zero at E_F0,
     which is the property this reproduces.
     """
     from asclc import SpaceCharge
@@ -464,7 +514,7 @@ def test_voltage_vanishes_at_zero_bias() -> None:
 def test_total_space_charge_does_not_vanish_at_zero_bias() -> None:
     """The rejected alternative must fail the same check, for the record.
 
-    For the workbook's parameters E_t sits above E_F0, so the trap is already
+    For the prototype's parameters E_t sits above E_F0, so the trap is already
     68 % hole-occupied at equilibrium and the total-charge reading starts at
     several volts, so the two references are not interchangeable.
     """
@@ -490,14 +540,27 @@ def test_space_charge_is_monotonic_and_starts_at_zero() -> None:
 
 
 # --------------------------------------------------------------------------- #
-# Regression against the reference workbook
+# Regression against the prototype spreadsheet
 # --------------------------------------------------------------------------- #
+#
+# These are the project's only independent numerical oracle: every other check
+# is an analytic identity or an internal consistency relation, and those cannot
+# catch an assumption the code and its docstrings share. They are kept for that
+# reason, not because the prototype is authoritative -- it is not, and the
+# defaults no longer follow it. Each therefore selects the prototype's options
+# explicitly. docs/prototype_differences.md lists what those options change.
 
-#: Values read from the workbook's own cached cells: E_F (n(E)!A), p_t (n(E)!O)
+#: Options that reproduce the prototype spreadsheet's occupation integrals.
+PROTOTYPE_DENSITIES = {
+    "profile": TrapProfile.PROTOTYPE_SECH,
+    "theta_model": ThetaModel.ABSOLUTE_OVER_INJECTED,
+}
+
+#: Values read from the prototype's own cached cells: E_F (n(E)!A), p_t (n(E)!O)
 #: and p_f (n(E)!L), for the S2 configuration. The port must agree to within the
-#: workbook's own quadrature error, which is about 2 % on the band integrals
+#: prototype's own quadrature error, which is about 2 % on the band integrals
 #: because it uses the rectangle rule on a 3 meV grid across a sqrt band edge.
-WORKBOOK_REFERENCE = [
+PROTOTYPE_REFERENCE = [
     # E_F (eV),   p_t (m^-3),   p_f (m^-3)
     (-5.199, 1.5794e18, 1.5677e18),
     (-5.100, 4.5235e16, 3.3572e16),
@@ -508,39 +571,43 @@ WORKBOOK_REFERENCE = [
 ]
 
 
-def test_matches_workbook_injected_charge() -> None:
-    """p_s - p_s(E_F0) must reproduce the workbook's n(E)!O column.
+def test_injected_charge_matches_reference_values() -> None:
+    """p_s - p_s(E_F0) must reproduce the prototype's n(E)!O column.
 
     This is the check that settled which quantity Eq (S11) means. Trapped-only
     charge fails it by a factor of 140 at the first row.
     """
-    E_F = np.array([row[0] for row in WORKBOOK_REFERENCE])
-    expected = np.array([row[1] for row in WORKBOOK_REFERENCE])
+    E_F = np.array([row[0] for row in PROTOTYPE_REFERENCE])
+    expected = np.array([row[1] for row in PROTOTYPE_REFERENCE])
 
-    d = carrier_densities(E_F, MATERIAL, DEVICE, PARAMS)
-    d0 = carrier_densities(np.array([PARAMS.E_F0]), MATERIAL, DEVICE, PARAMS)
+    d = carrier_densities(E_F, MATERIAL, DEVICE, PARAMS, **PROTOTYPE_DENSITIES)
+    d0 = carrier_densities(
+        np.array([PARAMS.E_F0]), MATERIAL, DEVICE, PARAMS, **PROTOTYPE_DENSITIES
+    )
     injected_total = d.p_s - d0.p_s[0]
 
     assert injected_total == pytest.approx(expected, rel=0.02)
 
 
-def test_trapped_only_charge_fails_the_workbook_comparison() -> None:
+def test_trapped_only_charge_fails_the_reference_comparison() -> None:
     """Trapped-only charge is 140x low here, so it is not what Eq (S11) means."""
-    E_F = np.array([WORKBOOK_REFERENCE[0][0]])
-    expected = WORKBOOK_REFERENCE[0][1]
+    E_F = np.array([PROTOTYPE_REFERENCE[0][0]])
+    expected = PROTOTYPE_REFERENCE[0][1]
 
-    d = carrier_densities(E_F, MATERIAL, DEVICE, PARAMS)
-    d0 = carrier_densities(np.array([PARAMS.E_F0]), MATERIAL, DEVICE, PARAMS)
+    d = carrier_densities(E_F, MATERIAL, DEVICE, PARAMS, **PROTOTYPE_DENSITIES)
+    d0 = carrier_densities(
+        np.array([PARAMS.E_F0]), MATERIAL, DEVICE, PARAMS, **PROTOTYPE_DENSITIES
+    )
     injected_trapped = float((d.p_t - d0.p_t[0])[0])
 
     assert injected_trapped < expected / 100
 
 
-def test_matches_workbook_free_holes() -> None:
-    """p_f must match the workbook's n(E)!L to within its quadrature error."""
-    E_F = np.array([row[0] for row in WORKBOOK_REFERENCE])
-    expected = np.array([row[2] for row in WORKBOOK_REFERENCE])
-    d = carrier_densities(E_F, MATERIAL, DEVICE, PARAMS)
+def test_free_holes_match_reference_values() -> None:
+    """p_f must match the prototype's n(E)!L to within its quadrature error."""
+    E_F = np.array([row[0] for row in PROTOTYPE_REFERENCE])
+    expected = np.array([row[2] for row in PROTOTYPE_REFERENCE])
+    d = carrier_densities(E_F, MATERIAL, DEVICE, PARAMS, **PROTOTYPE_DENSITIES)
     assert d.p_f == pytest.approx(expected, rel=0.025)
 
 
@@ -561,7 +628,7 @@ def test_fermi_level_lands_inside_the_gap() -> None:
 
     Eq (7) is p_f = N_v exp(-(E_F - E_v)/kT), so E_F = E_v + kT ln(N_v/p_f).
     Writing ln(p_f/N_v) flips the sign and puts E_F below the valence band,
-    which is what the ABS() in the workbook's MODEL!S9 exists to prevent.
+    which is what the ABS() in the prototype's MODEL!S9 exists to prevent.
     """
     mu_0 = 2.7e-3
     V = np.logspace(-2, 0.5, 200)
@@ -604,8 +671,8 @@ def test_v_max_rejects_an_impossible_bound() -> None:
         model_curve(PARAMS, MATERIAL, DEVICE, n_points=201, V_max=-1.0)
 
 
-def test_matches_workbook_theta_and_mobility() -> None:
-    """Theta and mu_eff must track the workbook's n(E)!N and j(U)!K.
+def test_theta_and_mobility_match_reference_values() -> None:
+    """Theta and mu_eff must track the prototype's n(E)!N and j(U)!K.
 
     The denominator is the injected total. Using the absolute p_s would include
     the 2.5e16 m^-3 of trapped charge present at zero bias, suppressing Theta by
@@ -614,23 +681,25 @@ def test_matches_workbook_theta_and_mobility() -> None:
     E_F = np.array([-5.199, -5.001, -4.860])
     expected_theta = np.array([0.99262, 0.058246, 0.00058247])
 
-    d = carrier_densities(E_F, MATERIAL, DEVICE, PARAMS)
+    d = carrier_densities(E_F, MATERIAL, DEVICE, PARAMS, **PROTOTYPE_DENSITIES)
     assert d.theta_p == pytest.approx(expected_theta, rel=0.03)
     assert PARAMS.mu_0 * d.theta_p == pytest.approx(
         PARAMS.mu_0 * expected_theta, rel=0.03
     )
 
 
-def test_matches_workbook_voltage_and_current() -> None:
-    """End-to-end: V and J against the workbook's j(U)!C and j(U)!E."""
+def test_voltage_and_current_match_reference_values() -> None:
+    """End-to-end: V and J against the prototype's j(U)!C and j(U)!E."""
     E_F = np.array([-5.199, -5.001, -4.899, -4.860])
     expected_V = np.array([236.05, 1.8446, 1.4965, 0.77331])
     expected_J = np.array([506.79, 0.0018161, 2.8084e-05, 3.1924e-06])
 
-    d = carrier_densities(E_F, MATERIAL, DEVICE, PARAMS)
+    d = carrier_densities(E_F, MATERIAL, DEVICE, PARAMS, **PROTOTYPE_DENSITIES)
     from asclc import gamma_from_trap_temperature
 
-    gamma = gamma_from_trap_temperature(PARAMS, DEVICE)
+    gamma = gamma_from_trap_temperature(
+        PARAMS, DEVICE, model=GammaModel.TT_OVER_T
+    )
     V = (
         CODATA.e
         * DEVICE.thickness**2
@@ -651,7 +720,7 @@ def test_matches_workbook_voltage_and_current() -> None:
 def test_theta_n_is_finite_on_a_hole_sweep() -> None:
     """Injecting holes depletes electrons, so n_s_injected is negative.
 
-    Theta is a magnitude ratio, as the workbook's ABS(nf/ns) makes explicit. A
+    Theta is a magnitude ratio, as the prototype's ABS(nf/ns) makes explicit. A
     bare positivity guard made theta_n NaN for every point of a hole sweep,
     silently removing the electron model curves the paper plots in Fig. 4c,d.
     """
@@ -672,7 +741,7 @@ def test_theta_is_bounded_by_one() -> None:
 def test_analysis_warns_when_degenerate() -> None:
     """Eq (7) is the Boltzmann limit; p_f > N_v means it does not apply.
 
-    The workbook's ABS() form folds such points back into the gap without
+    The prototype's ABS() form folds such points back into the gap without
     complaint, which hides the failure rather than reporting it.
     """
     V = np.logspace(-2, 1, 50)
@@ -802,7 +871,7 @@ def test_model_gamma_disagrees_with_its_own_curve_slope() -> None:
 def test_analysis_accepts_per_point_temperature() -> None:
     """Eq (7) must be able to use the measured temperature of each point.
 
-    The reference workbook does this, taking T from its own recorded column.
+    The prototype spreadsheet does this, taking T from its own recorded column.
     Over its 282-314 K range the extracted E_F moves by 0.075 eV, which is
     larger than either Fermi level shift the article reports (0.046 and
     0.006 eV). Holding T at its nominal value attributes that scatter to the
@@ -847,7 +916,7 @@ def test_temperature_shape_is_validated() -> None:
 def test_model_ptm_is_the_space_charge_not_pt() -> None:
     """The article's ptm is p_space_charge; p_t is a different quantity.
 
-    Fig. 4c,d and Fig. 6 plot ptm, which is the workbook's MODEL!AJ, reading
+    Fig. 4c,d and Fig. 6 plot ptm, which is the prototype's MODEL!AJ, reading
     from n(E)!O, which is the injected total. Reproducing those figures from
     curve.p_t gives a visibly different curve: p_t carries the equilibrium
     trapped population and misses the band contribution at high injection.
@@ -877,13 +946,13 @@ def test_injected_charge_conserves_exactly() -> None:
     assert np.array_equal(d.n_s_injected, -d.p_s_injected)
 
 
-def test_matches_workbook_electron_columns() -> None:
+def test_electron_densities_match_reference_values() -> None:
     """n_f against n(E)!E, and the injected electron total against n(E)!H."""
     E_F = np.array([-5.199, -5.001, -4.899, -4.860])
     wb_nf = np.array([4.3899e-07, 0.00095727, 0.050224, 0.2283])
     wb_nt = np.array([-1.5794e18, -1.2348e16, -1.0016e16, -5.1765e15])
 
-    d = carrier_densities(E_F, MATERIAL, DEVICE, PARAMS)
+    d = carrier_densities(E_F, MATERIAL, DEVICE, PARAMS, **PROTOTYPE_DENSITIES)
     assert d.n_f == pytest.approx(wb_nf, rel=0.04)
     assert d.n_s_injected == pytest.approx(wb_nt, rel=0.02)
 
@@ -1144,6 +1213,137 @@ def test_out_of_domain_points_sit_at_low_bias(n_points) -> None:
         assert c.V[bad].max() < 0.05 * c.V.max()
 
 
+def test_theta_readings_are_all_reachable_and_agree_at_high_injection() -> None:
+    """The three readings of Eq (S12) are selectable and differ where it matters.
+
+    They converge once the injected charge swamps the equilibrium population,
+    and separate by a large factor through the trap-filling region. Spec 7.3.
+    """
+    E_F = np.linspace(PARAMS.E_F0 - 0.02, MATERIAL.E_v + 0.05, 201)
+    got = {
+        tm: carrier_densities(
+            E_F, MATERIAL, DEVICE, PARAMS, theta_model=tm
+        ).theta_p
+        for tm in ThetaModel
+    }
+    for tm, theta in got.items():
+        assert np.all(np.isfinite(theta)), tm
+
+    # deep in injection every reading agrees
+    for tm, theta in got.items():
+        assert theta[-1] == pytest.approx(
+            got[ThetaModel.ABSOLUTE_OVER_INJECTED][-1], rel=1e-3
+        ), tm
+
+    # through the trap-filling region they do not
+    spread = max(np.max(a / b) for a in got.values() for b in got.values())
+    assert spread > 3.0
+
+
+def test_theta_model_default_is_the_printed_equation() -> None:
+    """The default is Eq (S12) as printed in both the SI and the article."""
+    E_F = np.array([-5.199, -5.001, -4.860])
+    d = carrier_densities(E_F, MATERIAL, DEVICE, PARAMS)
+    explicit = carrier_densities(
+        E_F, MATERIAL, DEVICE, PARAMS, theta_model=ThetaModel.ABSOLUTE_OVER_TOTAL
+    )
+    assert d.theta_model is ThetaModel.ABSOLUTE_OVER_TOTAL
+    assert np.array_equal(d.theta_p, explicit.theta_p)
+    assert d.theta_p == pytest.approx(d.p_f / d.p_s, rel=1e-12)
+
+
+@pytest.mark.parametrize(
+    "theta_model",
+    [ThetaModel.ABSOLUTE_OVER_TOTAL, ThetaModel.INJECTED_OVER_INJECTED],
+)
+def test_alternative_theta_readings_are_bounded_by_one(theta_model) -> None:
+    """Only the prototype's mixed-reference reading can exceed 1.
+
+    The other two put a population over a superset of itself under the same
+    reference, so they are fractions by construction and `valid` never fires.
+    """
+    material, device, params = PUBLISHED["MAPbBr3 light"]
+    E_F = params.E_F0 - np.logspace(-6, -0.5, 200)
+    d = carrier_densities(
+        E_F, material, device, params, theta_model=theta_model
+    )
+    finite = np.isfinite(d.theta_p)
+    assert np.all(d.theta_p[finite] <= 1.0 + 1e-12)
+    assert d.valid.all()
+
+    # the prototype reading on the same sweep does go out of domain
+    ref = carrier_densities(
+        E_F, material, device, params,
+        theta_model=ThetaModel.ABSOLUTE_OVER_INJECTED,
+    )
+    assert np.nanmax(ref.theta_p) > 1.0
+
+
+def test_injected_free_carriers_are_returned() -> None:
+    """p_f_injected is p_f referenced to equilibrium, and it is what the
+
+    INJECTED_OVER_INJECTED reading divides by p_s_injected. It used to be
+    computed and discarded.
+    """
+    E_F = np.linspace(PARAMS.E_F0, MATERIAL.E_v + 0.05, 64)
+    d = carrier_densities(
+        E_F, MATERIAL, DEVICE, PARAMS,
+        theta_model=ThetaModel.INJECTED_OVER_INJECTED,
+    )
+    assert d.p_f_injected[0] == 0.0
+    assert d.p_f_injected == pytest.approx(d.p_f - d.p_f[0], rel=1e-9, abs=1e-6)
+    nonzero = d.p_s_injected != 0
+    assert d.theta_p[nonzero] == pytest.approx(
+        d.p_f_injected[nonzero] / d.p_s_injected[nonzero], rel=1e-12
+    )
+
+
+def test_model_curve_carries_the_theta_model_through_v_max() -> None:
+    """The selected reading must survive the V_max trim, arrays and all."""
+    curve = model_curve(
+        PARAMS, MATERIAL, DEVICE, n_points=2001, V_max=5.0,
+        theta_model=ThetaModel.ABSOLUTE_OVER_TOTAL,
+    )
+    assert curve.theta_model is ThetaModel.ABSOLUTE_OVER_TOTAL
+    n = curve.V.size
+    for name in ("E_F", "J", "p_f", "p_t", "p_space_charge", "theta", "mu_eff"):
+        assert getattr(curve, name).size == n, name
+    assert np.all(curve.theta[np.isfinite(curve.theta)] <= 1.0)
+
+
+def test_gamma_estimator_is_not_the_prototypes_under_noise() -> None:
+    """1/slope(lnJ|lnV) is not slope(lnV|lnJ) once the data has scatter.
+
+    The article defines them as equal and they are for a clean power law, but
+    ordinary least squares is not symmetric. The prototype regresses the other
+    way (Data-calculations!K = LINEST(ln V, ln j)); this port fits in the J
+    direction. Documented in local_loglog_slope and spec section 5.
+    """
+    V = np.logspace(-1, 0.8, 200)
+    clean = 3e-3 * V**2.4
+    rng = np.random.default_rng(3)
+    noisy = clean * np.exp(rng.normal(0.0, 0.25, size=V.size))
+
+    def prototype_gamma(v, j, window):
+        x, y = np.log(np.abs(j)), np.log(np.abs(v))  # LINEST(ln V, ln j)
+        half, out = window // 2, np.full(v.size, np.nan)
+        for i in range(v.size):
+            lo, hi = max(0, i - half), min(v.size, i + half + 1)
+            out[i] = np.polyfit(x[lo:hi], y[lo:hi], 1)[0]
+        return out
+
+    interior = slice(10, -10)
+    # on the clean power law the two agree to rounding
+    ours = 1.0 / local_loglog_slope(V, clean, window=11)
+    theirs = prototype_gamma(V, clean, 11)
+    assert ours[interior] == pytest.approx(theirs[interior], rel=1e-9)
+
+    # with scatter they do not, and the gap is not negligible
+    ours_n = 1.0 / local_loglog_slope(V, noisy, window=11)
+    theirs_n = prototype_gamma(V, noisy, 11)
+    assert np.max(np.abs(ours_n[interior] / theirs_n[interior] - 1.0)) > 0.05
+
+
 def test_theta_exceeds_one_immediately_above_equilibrium() -> None:
     """Sampling close enough to E_F0 must reach the out-of-domain region.
 
@@ -1152,7 +1352,214 @@ def test_theta_exceeds_one_immediately_above_equilibrium() -> None:
     """
     material, device, params = PUBLISHED["MAPbBr3 light"]
     E_F = params.E_F0 - np.logspace(-6, -3, 40)
-    d = carrier_densities(E_F, material, device, params)
+    d = carrier_densities(
+        E_F, material, device, params,
+        theta_model=ThetaModel.ABSOLUTE_OVER_INJECTED,
+    )
     assert np.nanmax(d.theta_p) > 1.0
     assert not d.valid.all()
     assert np.all(d.theta_p[d.valid] <= 1.0)
+
+
+# --------------------------------------------------------------------------- #
+# Figures
+# --------------------------------------------------------------------------- #
+
+plt_mod = pytest.importorskip("matplotlib", reason="the 'plot' extra is not installed")
+
+
+def _curve_and_analysis():
+    curve = model_curve(PARAMS, MATERIAL, DEVICE, n_points=401, V_max=5.0)
+    V = np.logspace(-1, 0.4, 60)
+    J = 3e-4 * V**1.8
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        analysis = analyse_jv(V, J, MATERIAL, DEVICE, mu_0=PARAMS.mu_0)
+    return curve, analysis
+
+
+def test_write_figures_produces_every_figure(tmp_path) -> None:
+    import asclc_plot
+
+    curve, analysis = _curve_and_analysis()
+    written = asclc_plot.write_figures(
+        str(tmp_path), curve, PARAMS, MATERIAL, DEVICE, analysis
+    )
+    assert len(written) == len(asclc_plot.FIGURES)
+    for path in written:
+        assert os.path.getsize(path) > 0, path
+
+
+def test_figures_work_without_a_measurement(tmp_path) -> None:
+    """The model branch alone must plot: there is not always a measurement."""
+    import asclc_plot
+
+    curve = model_curve(PARAMS, MATERIAL, DEVICE, n_points=401, V_max=5.0)
+    written = asclc_plot.write_figures(
+        str(tmp_path), curve, PARAMS, MATERIAL, DEVICE, None
+    )
+    assert len(written) == len(asclc_plot.FIGURES)
+
+
+def test_drawable_is_axis_aware() -> None:
+    """Positivity is required only on log axes.
+
+    The bandgap map's abscissa is an energy, negative on the vacuum scale.
+    Requiring every array to be positive drops all of its points and the figure
+    comes out empty but for the density of states.
+    """
+    from matplotlib.figure import Figure
+
+    import asclc_plot
+
+    ax = Figure().add_subplot()
+    ax.set_yscale("log")
+    E = np.array([-5.1, -5.0, -4.9])
+    p = np.array([1e16, 1e17, 1e18])
+    assert asclc_plot._drawable(ax, E, p).all(), "negative energies must survive"
+
+    ax.set_xscale("log")
+    assert not asclc_plot._drawable(ax, E, p).any(), "log x must reject negatives"
+
+
+def test_figures_separate_valid_from_rejected() -> None:
+    """Rejected points are drawn faded, not dropped: both sets must appear."""
+    import asclc_plot
+
+    curve, _ = _curve_and_analysis()
+    V = np.logspace(-1, 0.6, 60)
+    J = 2e-4 * V**2.0
+    J[10:13] *= -1.0
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        noisy = analyse_jv(V, J, MATERIAL, DEVICE, mu_0=PARAMS.mu_0, window=7)
+    assert not noisy.valid.all(), "fixture must contain rejected points"
+
+    fig = asclc_plot.plot_jv(curve, noisy)
+    ax = fig.axes[0]
+    # model line, rejected markers, accepted markers
+    assert len(ax.lines) >= 3
+
+
+# --------------------------------------------------------------------------- #
+# Parameter files
+# --------------------------------------------------------------------------- #
+
+PARAM_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "params")
+
+
+def test_bundled_param_file_round_trips() -> None:
+    """params/MAPbBr3_S2.toml must reproduce MAPBBR3_S2 exactly.
+
+    The bundled constant and the shipped file describe the same configuration;
+    if they drift apart the regression suite and the CLI stop testing the same
+    thing.
+    """
+    cfg = load_config(os.path.join(PARAM_DIR, "MAPbBr3_S2.toml"))
+    assert cfg.material == MATERIAL
+    assert cfg.device == DEVICE
+    assert cfg.params == PARAMS
+
+
+@pytest.mark.parametrize(
+    "name", ["MAPbBr3_dark", "MAPbBr3_light", "MAPbI3_dark", "MAPbI3_light"]
+)
+def test_published_param_files_match_table_s4(name: str) -> None:
+    """The shipped files must carry the article's own published parameters."""
+    key = name.replace("_", " ").replace("dark", "dark").replace("light", "light")
+    material, device, params = PUBLISHED[key]
+    cfg = load_config(os.path.join(PARAM_DIR, f"{name}.toml"))
+    assert cfg.material == material
+    assert cfg.device == device
+    assert cfg.params == params
+
+
+def test_param_file_defaults_reproduce_the_prototype() -> None:
+    """Omitting [model] must select every prototype-reproducing default."""
+    from asclc import (
+        DEFAULT_GAMMA_MODEL,
+        DEFAULT_SPACE_CHARGE,
+        DEFAULT_THETA_MODEL,
+        DEFAULT_TRAP_PROFILE,
+    )
+
+    cfg = load_config(os.path.join(PARAM_DIR, "MAPbBr3_S2.toml"))
+    assert cfg.trap_profile is DEFAULT_TRAP_PROFILE
+    assert cfg.gamma_model is DEFAULT_GAMMA_MODEL
+    assert cfg.theta_model is DEFAULT_THETA_MODEL
+    assert cfg.space_charge is DEFAULT_SPACE_CHARGE
+    assert cfg.constants == CODATA
+
+
+_MINIMAL = """
+[material]
+name = "X"
+E_c = -3.0
+E_v = -5.0
+eps_r = 25.0
+m_eff_h = 0.3
+m_eff_e = 0.3
+
+[device]
+thickness = 6.0e-4
+area = 7.7e-6
+temperature = 299.0
+
+[params]
+mu_0 = 2.7e-3
+N_t = 4.7e16
+E_t = -4.4
+T_t = 30.0
+E_F0 = -4.5
+"""
+
+
+def test_minimal_param_file_loads(tmp_path) -> None:
+    path = _write(tmp_path, "p.toml", _MINIMAL)
+    cfg = load_config(path)
+    assert cfg.params.E_t == -4.4
+    assert cfg.name == "X"
+
+
+def test_param_file_rejects_an_unknown_key(tmp_path) -> None:
+    """A misspelled key must fail loudly.
+
+    Ignoring it would leave the model on its default while the file appears to
+    say otherwise, and nothing downstream would look wrong.
+    """
+    path = _write(tmp_path, "p.toml", _MINIMAL.replace("E_t = -4.4", "E_tt = -4.4"))
+    with pytest.raises(ValueError, match="unknown key"):
+        load_config(path)
+
+
+def test_param_file_rejects_a_missing_key(tmp_path) -> None:
+    path = _write(tmp_path, "p.toml", _MINIMAL.replace("E_t = -4.4\n", ""))
+    with pytest.raises(ValueError, match="missing"):
+        load_config(path)
+
+
+def test_param_file_rejects_a_missing_section(tmp_path) -> None:
+    path = _write(tmp_path, "p.toml", _MINIMAL.split("[params]")[0])
+    with pytest.raises(ValueError, match=r"missing required section \[params\]"):
+        load_config(path)
+
+
+def test_param_file_rejects_an_unknown_modelling_choice(tmp_path) -> None:
+    path = _write(
+        tmp_path, "p.toml", _MINIMAL + '\n[model]\ntrap_profile = "lorentzian"\n'
+    )
+    with pytest.raises(ValueError, match="not one of"):
+        load_config(path)
+
+
+def test_param_file_selects_non_default_choices(tmp_path) -> None:
+    path = _write(
+        tmp_path,
+        "p.toml",
+        _MINIMAL + '\n[model]\ntrap_profile = "prototype_sech"\n'
+        'gamma_model = "Tt/T"\nconstants = "prototype"\n',
+    )
+    cfg = load_config(path)
+    assert cfg.trap_profile is TrapProfile.PROTOTYPE_SECH
+    assert cfg.gamma_model is GammaModel.TT_OVER_T
+    assert cfg.constants == Constants.prototype()

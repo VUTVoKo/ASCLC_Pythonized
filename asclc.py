@@ -2,7 +2,7 @@
 
 A Python implementation of the A-SCLC model of Gavranovic, Zmeskal, Weiter and
 Pospisil, *Communications Physics* **8**, 280 (2025),
-doi:10.1038/s42005-025-02202-1, ported from the reference Excel workbook.
+doi:10.1038/s42005-025-02202-1, ported from the reference Excel prototype.
 
 The model has two independent branches that meet only when the results are
 plotted together:
@@ -31,16 +31,16 @@ lengths m, current densities A m^-2. Temperatures K.
 
 Unresolved questions and known limitations
 ------------------------------------------
-Points where the workbook, the article and the SI disagree are resolved by an
+Points where the prototype, the article and the SI disagree are resolved by an
 explicit, switchable default rather than silently, so that changing a decision is
 a keyword argument and not a rewrite. See :class:`TrapProfile`, :class:`GammaModel`
 and :class:`SpaceCharge`; ``ASCLC_spec.md`` section 6 lists what is still open and
 how each could be settled from the data.
 
-Validation against the reference workbook: with the default settings the
-occupation integrals reproduce the workbook's own ``n(E)!L`` and ``n(E)!O``
+Validation against the prototype spreadsheet: with the default settings the
+occupation integrals reproduce the prototype's own ``n(E)!L`` and ``n(E)!O``
 columns to within 0.1-2 % over five orders of magnitude. The residual is the
-workbook's rectangle rule on a 3 meV grid across the square-root band edge,
+prototype's rectangle rule on a 3 meV grid across the square-root band edge,
 where this module uses a substitution that removes the singularity; the values
 here are the more accurate ones. See ``test_asclc.py``.
 
@@ -53,8 +53,9 @@ from __future__ import annotations
 
 import argparse
 import enum
+import sys
 import warnings
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, fields, replace
 from typing import Final
 
 import numpy as np
@@ -62,30 +63,34 @@ import numpy.typing as npt
 from scipy.special import expit
 
 __all__ = [
-    "Constants",
-    "TrapProfile",
-    "GammaModel",
-    "SpaceCharge",
-    "Material",
-    "Device",
-    "ModelParams",
-    "EnergyGrid",
-    "ModelCurve",
+    "MAPBBR3",
+    "MAPBBR3_S2",
+    "MAPBI3",
     "AnalysisResult",
-    "trap_dos",
-    "valence_band_dos",
+    "CarrierDensities",
+    "Configuration",
+    "Constants",
+    "Device",
+    "EnergyGrid",
+    "GammaModel",
+    "Material",
+    "Measurement",
+    "ModelCurve",
+    "ModelParams",
+    "SpaceCharge",
+    "ThetaModel",
+    "TrapProfile",
+    "analyse_jv",
+    "carrier_densities",
     "conduction_band_dos",
     "effective_dos",
-    "carrier_densities",
-    "model_curve",
-    "analyse_jv",
-    "local_loglog_slope",
-    "Measurement",
+    "gamma_from_trap_temperature",
+    "load_config",
     "load_jv",
-    "CarrierDensities",
-    "MAPBBR3",
-    "MAPBI3",
-    "WORKBOOK_S2",
+    "local_loglog_slope",
+    "model_curve",
+    "trap_dos",
+    "valence_band_dos",
 ]
 
 FloatArray = npt.NDArray[np.float64]
@@ -100,9 +105,9 @@ FloatArray = npt.NDArray[np.float64]
 class Constants:
     """Physical constants.
 
-    Defaults are CODATA 2018. The reference workbook uses slightly rounded
-    values; :meth:`workbook` reproduces them, which matters only when comparing
-    against the spreadsheet digit for digit. The largest relative difference is
+    Defaults are CODATA 2018. The prototype spreadsheet uses slightly rounded
+    values; :meth:`prototype` reproduces them, which matters only when comparing
+    against the prototype digit for digit. The largest relative difference is
     in ``k_B`` at 4.7e-4, which propagates to roughly the same relative shift in
     every Boltzmann factor.
 
@@ -127,8 +132,8 @@ class Constants:
     m_0: float = 9.1093837015e-31
 
     @classmethod
-    def workbook(cls) -> "Constants":
-        """Return the rounded constants hard-coded in the reference workbook."""
+    def prototype(cls) -> Constants:
+        """Return the rounded constants hard-coded in the prototype spreadsheet."""
         return cls(
             e=1.602e-19,
             k_B=1.38e-23,
@@ -156,21 +161,24 @@ class TrapProfile(enum.Enum):
     ``SI_BIEXPONENTIAL`` is Eq (S5) as printed, ``N_t/(k_B T_t) e^u/(1+e^u)^2``
     with ``u = (E - E_t)/(k_B T_t)``. It integrates to exactly ``N_t``.
 
-    ``WORKBOOK_SECH`` is what the reference spreadsheet computes. Its cell
+    ``PROTOTYPE_SECH`` is what the prototype computes. Its cell
     formula reads ``.../(1 + EXP(u)^2)``; since ``^`` binds before ``+`` in
     Excel this is ``1 + e^{2u}`` rather than ``(1 + e^u)^2``, giving a
-    ``sech(u)/2`` profile. Combined with the workbook's ``N_t/(2 k_B T_t)``
+    ``sech(u)/2`` profile. Combined with the prototype's ``N_t/(2 k_B T_t)``
     prefactor it integrates to ``(pi/4) N_t``, not ``N_t``. Whether that is an
-    error or a deliberate departure is unresolved. The default is this variant so
-    the port reproduces the workbook's existing curves; ``SI_BIEXPONENTIAL`` is
-    the better choice for new work, being both documented and normalized.
+    error or a deliberate departure is unresolved. It is retained so pre-port
+    results stay reproducible; ``SI_BIEXPONENTIAL`` is the default, being both
+    what the SI documents and the only variant normalized to ``N_t``. See
+    ``docs/prototype_differences.md``.
 
     ``GAUSSIAN`` is Eq (S6), with ``sigma = 2 k_B T_t``. Normalized to ``N_t``.
-    Not used by the workbook.
+    Not used by the prototype. Note that Eq (S6) is printed with the exponent
+    positive, ``exp(+(E - E_t)^2 / 2 sigma^2)``, which diverges; the sign is
+    taken as negative here.
     """
 
     SI_BIEXPONENTIAL = "si_biexponential"
-    WORKBOOK_SECH = "workbook_sech"
+    PROTOTYPE_SECH = "prototype_sech"
     GAUSSIAN = "gaussian"
 
 
@@ -179,9 +187,9 @@ class SpaceCharge(enum.Enum):
 
     ``INJECTED_TOTAL`` uses ``p_s(E_F) - p_s(E_F0)``, the total injected charge,
     free plus trapped, referenced to equilibrium. This is the default and it is
-    what the reference workbook computes: it reproduces the workbook's own
+    what the prototype spreadsheet computes: it reproduces the prototype's own
     ``n(E)!O`` column to within 0.1-1.5 % across five orders of magnitude, the
-    residual being the workbook's coarse rectangle rule on the square-root band
+    residual being the prototype's coarse rectangle rule on the square-root band
     edge. It vanishes at ``E_F = E_F0`` as zero bias requires.
 
     ``INJECTED_TRAPPED`` uses ``p_t(E_F) - p_t(E_F0)``, trapped charge only. It
@@ -208,31 +216,91 @@ class SpaceCharge(enum.Enum):
 class GammaModel(enum.Enum):
     """Choice of ``gamma`` for the model branch.
 
-    ``TT_OVER_T`` is ``T_t / T``, which is what the workbook uses
-    (cell ``j(U)!C6``).
+    ``TT_OVER_T`` is ``T_t / T``, which is what the prototype uses
+    (cell ``j(U)!C6 = MODEL!B30/MODEL!B9``). This is the default, so the port
+    reproduces the prototype's curves.
 
-    ``TT_OVER_T_PLUS_TT`` is ``T_t / (T + T_t)``, the most plausible reading of
-    Supplementary Note M4, whose PDF text layer is not legible enough to be
-    sure. At ``T_t = 30 K`` and ``T = 299 K`` these give 0.1003 and 0.0912.
+    ``SI_NOTE_M4`` is Supplementary Note M4 as printed:
+
+    .. math::
+        \\gamma = \\frac{T}{T_t + T} \\;(T_t \\ge T), \\qquad
+        \\gamma = 0.5 \\;(T_t < T)
+
+    Note that ``T/(T_t + T) = 1/(1 + T_t/T)``, which is ``1/m`` for the
+    Mark-Helfrich trap-filled-limit exponent ``m = 1 + T_t/T`` of an exponential
+    trap distribution. It is therefore the reading that squares Note M4 with the
+    article's own definition ``gamma = 1/m``. For a cold trap (``T_t < T``, which
+    includes every configuration in the article and the prototype) it selects the
+    constant 0.5 branch, so it does *not* reproduce the prototype.
+
+    ``TT_OVER_T_PLUS_TT`` is ``T_t / (T + T_t)``. **This appears in none of the
+    sources.** It is the complement ``1 - T/(T_t + T)`` of the Note M4
+    expression, and earlier revisions of this port carried it mislabelled as
+    "the SI's" reading. It is retained only so that comparisons made against
+    those revisions remain reproducible; prefer ``SI_NOTE_M4`` or ``TT_OVER_T``.
+
+    At ``T_t = 30 K`` and ``T = 299 K`` the three give 0.1003, 0.5 and 0.0912.
+    The choice does not affect the shape of a modelled J-V curve; see
+    ``ASCLC_spec.md`` section 7.2.
     """
 
     TT_OVER_T = "Tt/T"
+    SI_NOTE_M4 = "SI-M4"
     TT_OVER_T_PLUS_TT = "Tt/(T+Tt)"
 
 
-#: Default trap profile. Chosen to reproduce the reference workbook's existing
-#: curves so that a first run is directly comparable against them. Switch to
-#: :attr:`TrapProfile.SI_BIEXPONENTIAL` once the author confirms the intent.
-DEFAULT_TRAP_PROFILE: Final[TrapProfile] = TrapProfile.WORKBOOK_SECH
+class ThetaModel(enum.Enum):
+    """Which of the three readings of Eq (S12) defines ``Theta``.
 
-#: Default gamma model, matching the workbook.
-DEFAULT_GAMMA_MODEL: Final[GammaModel] = GammaModel.TT_OVER_T
+    The readings agree at high injection and differ by up to a factor of six
+    through the trap-filling region, so this is a modelling choice rather than a
+    detail. See ``ASCLC_spec.md`` section 7.3.
+
+    ``ABSOLUTE_OVER_INJECTED`` is ``|p_f / p_s_injected|``: the absolute free
+    concentration over the injected total. This is what the prototype computes
+    (``n(E)!N = ABS(L/J)``, where ``L`` is the absolute band integral and ``J``
+    the equilibrium-referenced total), and it keeps the two branches consistent,
+    since the analysis branch's ``Theta = mu_eff/mu_0 = p_f/p_t`` likewise puts
+    an absolute ``p_f`` from Eq (5) over the Eq (6) space charge. It is the
+    default. **It is not bounded by 1**: where the equilibrium free population
+    still rivals the injected charge it exceeds 1, which clears ``valid``.
+
+    ``ABSOLUTE_OVER_TOTAL`` is ``p_f / p_s = p_f / (p_f + p_t)``, Eq (S12) as
+    printed in both the SI and the article. Bounded by 1.
+
+    ``INJECTED_OVER_INJECTED`` is ``|dp_f / p_s_injected|``, referencing
+    numerator and denominator to equilibrium alike. Bounded by 1. Used by
+    neither source, but it is the reading under which ``Theta`` is a fraction of
+    one consistently defined population.
+    """
+
+    ABSOLUTE_OVER_INJECTED = "absolute_over_injected"
+    ABSOLUTE_OVER_TOTAL = "absolute_over_total"
+    INJECTED_OVER_INJECTED = "injected_over_injected"
+
+
+#: Default trap profile: Eq (S5) as printed, the only variant whose integral is
+#: ``N_t``, which is what makes ``N_t`` a concentration rather than a scale
+#: factor. :attr:`TrapProfile.PROTOTYPE_SECH` reproduces the prototype
+#: spreadsheet instead; see ``docs/prototype_differences.md``.
+DEFAULT_TRAP_PROFILE: Final[TrapProfile] = TrapProfile.SI_BIEXPONENTIAL
+
+#: Default gamma model: Supplementary Note M4 as printed. For every published
+#: configuration ``T_t < T``, so this selects the constant branch, gamma = 0.5.
+#: gamma is not identifiable from J-V data and only rescales the axes; see
+#: ``ASCLC_spec.md`` section 7.2 before reading anything into the value.
+DEFAULT_GAMMA_MODEL: Final[GammaModel] = GammaModel.SI_NOTE_M4
 
 #: Default space-charge reference. See :class:`SpaceCharge`.
 DEFAULT_SPACE_CHARGE: Final[SpaceCharge] = SpaceCharge.INJECTED_TOTAL
 
+#: Default reading of Eq (S12) as printed, ``p_f / (p_f + p_t)``. Bounded by 1
+#: by construction, so ``valid`` never fires on Theta under it. See
+#: :class:`ThetaModel` and ``ASCLC_spec.md`` section 7.3.
+DEFAULT_THETA_MODEL: Final[ThetaModel] = ThetaModel.ABSOLUTE_OVER_TOTAL
+
 #: Default window, in points, for the local log-log slope in the analysis
-#: branch. The workbook's binning cell is set to 0, which degenerates to a
+#: branch. The prototype's binning cell is set to 0, which degenerates to a
 #: single-point regression and returns gamma = 0 for every row; no such silent
 #: default is offered here.
 DEFAULT_SLOPE_WINDOW: Final[int] = 7
@@ -389,7 +457,7 @@ class EnergyGrid:
         band_points: int = 2001,
         trap_halfwidth: float = 30.0,
         trap_points: int = 1001,
-    ) -> "EnergyGrid":
+    ) -> EnergyGrid:
         """Construct the band and trap quadrature grids.
 
         Parameters
@@ -501,7 +569,7 @@ def effective_dos(
     Supplementary Table S4 lists values that do not follow from this expression
     (4.52e16 cm^-3 for MAPbBr3, 5.17e10 cm^-3 for MAPbI3, against roughly
     4.2e18 cm^-3 from the formula). This function follows the formula, which is
-    also what the workbook computes and what the standard
+    also what the prototype computes and what the standard
     2.5e19 cm^-3 (m*/m_0)^{3/2} room-temperature value reproduces. The MAPbI3
     entry in the table is six orders from anything Eq (S4) can give.
     """
@@ -545,7 +613,7 @@ def trap_dos(
     Notes
     -----
     ``SI_BIEXPONENTIAL`` and ``GAUSSIAN`` integrate to ``N_t``.
-    ``WORKBOOK_SECH`` integrates to ``(pi/4) N_t``; this is reproduced
+    ``PROTOTYPE_SECH`` integrates to ``(pi/4) N_t``; this is reproduced
     deliberately, not accidentally, and :func:`trap_dos_norm` reports it.
     """
     kT_t = constants.kT_eV(params.T_t)
@@ -556,7 +624,7 @@ def trap_dos(
         s = expit(u)
         return (params.N_t / kT_t) * s * (1.0 - s)
 
-    if profile is TrapProfile.WORKBOOK_SECH:
+    if profile is TrapProfile.PROTOTYPE_SECH:
         # e^u/(1+e^{2u}) == 1/(2 cosh u). Evaluated at -|u| so the exponentials
         # decay rather than overflow; cosh itself overflows for |u| > ~710.
         a = -np.abs(u)
@@ -584,7 +652,7 @@ def trap_dos_norm(
     Useful as a check that a numerical grid resolves the trap, and as an
     explicit statement of which profiles are normalized to ``N_t``.
     """
-    if profile is TrapProfile.WORKBOOK_SECH:
+    if profile is TrapProfile.PROTOTYPE_SECH:
         return float(np.pi / 4.0 * params.N_t)
     return float(params.N_t)
 
@@ -616,11 +684,16 @@ class CarrierDensities:
     p_s_injected : FloatArray
         ``p_s(E_F) - p_s(E_F0)``: the charge actually injected, which is what
         forms the space charge. Zero at ``E_F = E_F0``.
-    n_f, n_t, n_s, n_s_injected : FloatArray
+    p_f_injected : FloatArray
+        ``p_f(E_F) - p_f(E_F0)``: the free part of the injected charge alone.
+        The numerator of ``ThetaModel.INJECTED_OVER_INJECTED``.
+    n_f, n_t, n_s, n_s_injected, n_f_injected : FloatArray
         The electron counterparts.
     theta_p, theta_n : FloatArray
-        ``Theta``, Eq (S12): absolute free carriers over the injected total.
-        Bounded by 1 only where injection dominates; see ``valid``.
+        ``Theta``, Eq (S12), under whichever :class:`ThetaModel` was requested.
+        Bounded by 1 for every reading except the default; see ``valid``.
+    theta_model : ThetaModel
+        Which reading ``theta_p`` and ``theta_n`` carry.
     valid : FloatArray
         Boolean mask of points whose outputs are physically meaningful. **Read
         ``theta`` and anything derived from it through this.** False where
@@ -635,13 +708,16 @@ class CarrierDensities:
     p_t: FloatArray
     p_s: FloatArray
     p_s_injected: FloatArray
+    p_f_injected: FloatArray
     n_f: FloatArray
     n_t: FloatArray
     n_s: FloatArray
     n_s_injected: FloatArray
+    n_f_injected: FloatArray
     theta_p: FloatArray
     theta_n: FloatArray
     valid: FloatArray
+    theta_model: ThetaModel = DEFAULT_THETA_MODEL
 
 
 #: Rough cap on the number of float64 entries in one intermediate matrix, used
@@ -668,8 +744,14 @@ def _absolute_densities(
     constants: Constants,
     grid: EnergyGrid,
     profile: TrapProfile,
-) -> tuple[FloatArray, FloatArray, FloatArray, FloatArray]:
-    """Absolute occupation integrals: ``(p_f, p_t, n_f, n_t)``, m^-3.
+) -> tuple[
+    FloatArray, FloatArray, FloatArray, FloatArray,
+    FloatArray, FloatArray, FloatArray,
+]:
+    """Occupation integrals, m^-3.
+
+    Returns ``(p_f, p_t, n_f, n_t, p_s_injected, p_f_injected, n_f_injected)``.
+    The first four are absolute; the last three are referenced to ``E_F0``.
 
     Band integrals use the square-root substitution described in
     :class:`EnergyGrid`; the trap integral uses a uniform local mesh. Each is a
@@ -752,6 +834,7 @@ def carrier_densities(
     *,
     grid: EnergyGrid | None = None,
     profile: TrapProfile = DEFAULT_TRAP_PROFILE,
+    theta_model: ThetaModel = DEFAULT_THETA_MODEL,
 ) -> CarrierDensities:
     """Evaluate the occupation integrals of Eqs (S7), (S8), (S10), (S11).
 
@@ -775,6 +858,9 @@ def carrier_densities(
         Energy grid. Built by :meth:`EnergyGrid.build` if omitted.
     profile
         Trap functional form, see :class:`TrapProfile`.
+    theta_model
+        Which reading of Eq (S12) to return as ``theta_p``/``theta_n``. See
+        :class:`ThetaModel`; the default is the prototype's.
 
     Returns
     -------
@@ -783,23 +869,19 @@ def carrier_densities(
     Notes
     -----
     Eqs (S8) and (S11) as printed give the total concentration as one integral
-    with ``E_F0`` as a limit. The reference workbook implements this as an
+    with ``E_F0`` as a limit. The prototype spreadsheet implements this as an
     explicit subtraction inside the column,
     ``SUMPRODUCT(...) - ps0``, so ``E_F0`` acts as an equilibrium reference
     rather than a range of integration. That is what is done here, and it
-    reproduces the workbook's ``n(E)!J`` and ``n(E)!L`` to 0.1-2 %.
-
-    ``theta_p`` divides the absolute ``p_f`` by the **injected** total, matching
-    both the workbook and the analysis branch, where Eq (5) likewise yields an
-    absolute ``p_f``.
+    reproduces the prototype's ``n(E)!J`` and ``n(E)!L`` to 0.1-2 %.
 
     The sources support three readings of Eq (S12) which agree at high injection
     and differ by up to a factor of six through the trap-filling region, so the
-    choice is not a detail: absolute over absolute (the printed Eq (S12)),
-    absolute over injected (the workbook, used here), and injected over injected.
-    Only the first and third are bounded by 1. ``p_f``, ``p_t`` and
-    ``p_s_injected`` are all returned, so the alternatives are one division away.
-    See ``ASCLC_spec.md`` section 7.4.
+    choice is not a detail. It is exposed as ``theta_model``; the default divides
+    the absolute ``p_f`` by the **injected** total, matching both the prototype
+    and the analysis branch, where Eq (5) likewise yields an absolute ``p_f``.
+    Only that reading is unbounded, and where it exceeds 1 it clears ``valid``.
+    See :class:`ThetaModel` and ``ASCLC_spec.md`` section 7.3.
     """
     E_F = np.atleast_1d(np.asarray(E_F, dtype=float))
     if grid is None:
@@ -821,22 +903,36 @@ def carrier_densities(
     # for these parameters is 136 times larger than what remains.
     n_s_injected = -p_s_injected
 
-    # Absolute free carriers over the injected total, matching the workbook and
-    # the analysis branch, where Eq (5) likewise gives the absolute p_f. The
-    # mixed reference means Theta can exceed 1 where the equilibrium free
-    # population is comparable to the injected charge; that is a domain
-    # violation and is reported through `valid` rather than hidden.
+    # Theta is a magnitude ratio throughout, as the prototype's ABS(nf/ns) makes
+    # explicit: on a hole sweep the electron populations are depleted, so the
+    # electron numerator and denominator are both negative.
+    if theta_model is ThetaModel.ABSOLUTE_OVER_INJECTED:
+        # The prototype's reading. The mixed reference means Theta can exceed 1
+        # where the equilibrium free population is comparable to the injected
+        # charge; that is a domain violation, reported through `valid` rather
+        # than hidden.
+        num_p, den_p, num_n, den_n = p_f, p_s_injected, n_f, n_s_injected
+    elif theta_model is ThetaModel.ABSOLUTE_OVER_TOTAL:
+        num_p, den_p, num_n, den_n = p_f, p_s, n_f, n_s
+    elif theta_model is ThetaModel.INJECTED_OVER_INJECTED:
+        num_p, den_p = p_f_injected, p_s_injected
+        num_n, den_n = n_f_injected, n_s_injected
+    else:
+        raise ValueError(f"unknown theta model: {theta_model!r}")
+
     with np.errstate(divide="ignore", invalid="ignore"):
-        theta_p = np.where(p_s_injected != 0, np.abs(p_f / p_s_injected), np.nan)
-        theta_n = np.where(n_s_injected != 0, np.abs(n_f / n_s_injected), np.nan)
+        theta_p = np.where(den_p != 0, np.abs(num_p / den_p), np.nan)
+        theta_n = np.where(den_n != 0, np.abs(num_n / den_n), np.nan)
 
     with np.errstate(invalid="ignore"):
         valid = ~(theta_p > 1.0)
 
     return CarrierDensities(
         E_F=E_F, p_f=p_f, p_t=p_t, p_s=p_s, p_s_injected=p_s_injected,
+        p_f_injected=p_f_injected,
         n_f=n_f, n_t=n_t, n_s=n_s, n_s_injected=n_s_injected,
-        theta_p=theta_p, theta_n=theta_n, valid=valid,
+        n_f_injected=n_f_injected,
+        theta_p=theta_p, theta_n=theta_n, valid=valid, theta_model=theta_model,
     )
 
 
@@ -853,10 +949,19 @@ def gamma_from_trap_temperature(
 ) -> float:
     """Reverse slope ``gamma`` for the model branch, step M4.
 
-    See :class:`GammaModel` for the two candidate expressions.
+    See :class:`GammaModel` for the three candidate expressions and for why the
+    prototype's is the default.
     """
     if model is GammaModel.TT_OVER_T:
         gamma = params.T_t / device.temperature
+    elif model is GammaModel.SI_NOTE_M4:
+        # Note M4 as printed: T/(T_t + T) for a trap hotter than the sample,
+        # otherwise the constant 0.5. Every configuration in the article and the
+        # prototype has T_t < T, so they all take the second branch.
+        if params.T_t >= device.temperature:
+            gamma = device.temperature / (params.T_t + device.temperature)
+        else:
+            gamma = 0.5
     elif model is GammaModel.TT_OVER_T_PLUS_TT:
         gamma = params.T_t / (device.temperature + params.T_t)
     else:
@@ -885,7 +990,7 @@ class ModelCurve:
     J : FloatArray
         Current density from Eq (S14), A m^-2.
     p_f : FloatArray
-        Free hole concentration, m^-3. Matches the workbook's ``n(E)!L``.
+        Free hole concentration, m^-3. Matches the prototype's ``n(E)!L``.
     p_t : FloatArray
         Absolute trapped hole concentration, m^-3, including the population
         already present at zero bias. **This is not the article's** ``ptm``.
@@ -895,20 +1000,23 @@ class ModelCurve:
         By default the total injected charge ``p_s(E_F) - p_s(E_F0)``.
 
         **This is the article's** ``ptm``, the curve plotted against energy in
-        Fig. 4c,d and Fig. 6: it equals the workbook's ``MODEL!AJ``, which reads
+        Fig. 4c,d and Fig. 6: it equals the prototype's ``MODEL!AJ``, which reads
         from ``n(E)!O``. Plotting ``p_t`` there instead gives a visibly different
         curve, since ``p_t`` carries the equilibrium trapped population and
         misses the band contribution at high injection.
     theta : FloatArray
-        ``Theta``; see :func:`carrier_densities`.
+        ``Theta``; see :func:`carrier_densities` and :class:`ThetaModel`.
     valid : FloatArray
         Boolean mask of physically meaningful points, false where ``Theta > 1``.
         Read ``theta`` and ``mu_eff`` through it. Carries the same meaning as
-        :attr:`AnalysisResult.valid`.
+        :attr:`AnalysisResult.valid`. Only the default ``theta_model`` can put
+        points outside the domain; the other two readings are bounded by 1.
     mu_eff : FloatArray
         Effective mobility ``mu_0 Theta``, m^2 V^-1 s^-1.
     gamma : float
         The constant reverse slope used.
+    theta_model : ThetaModel
+        Which reading of Eq (S12) ``theta`` and ``mu_eff`` carry.
     """
 
     E_F: FloatArray
@@ -921,6 +1029,7 @@ class ModelCurve:
     valid: FloatArray
     mu_eff: FloatArray
     gamma: float
+    theta_model: ThetaModel = DEFAULT_THETA_MODEL
 
 
 def model_curve(
@@ -935,6 +1044,7 @@ def model_curve(
     profile: TrapProfile = DEFAULT_TRAP_PROFILE,
     gamma_model: GammaModel = DEFAULT_GAMMA_MODEL,
     space_charge: SpaceCharge = DEFAULT_SPACE_CHARGE,
+    theta_model: ThetaModel = DEFAULT_THETA_MODEL,
     grid: EnergyGrid | None = None,
 ) -> ModelCurve:
     """Generate a modelled J-V curve, steps M1-M5.
@@ -962,8 +1072,9 @@ def model_curve(
         way to the band edge drives the injected charge, and hence the voltage,
         to physically meaningless values, so a bound near the top of the
         measured range is normally what you want.
-    profile, gamma_model
-        See :class:`TrapProfile` and :class:`GammaModel`.
+    profile, gamma_model, space_charge, theta_model
+        See :class:`TrapProfile`, :class:`GammaModel`, :class:`SpaceCharge` and
+        :class:`ThetaModel`. Every default reproduces the prototype spreadsheet.
     grid
         Energy grid for the occupation integrals.
 
@@ -987,7 +1098,8 @@ def model_curve(
 
     E_F = np.linspace(params.E_F0, params.E_F0 - E_F_span, n_points)
     dens = carrier_densities(
-        E_F, material, device, params, constants, grid=grid, profile=profile
+        E_F, material, device, params, constants,
+        grid=grid, profile=profile, theta_model=theta_model,
     )
     gamma = gamma_from_trap_temperature(params, device, model=gamma_model)
 
@@ -1017,20 +1129,16 @@ def model_curve(
                 f"({np.nanmin(V):.4g} V); widen it or move E_F0"
             )
         E_F, V, J, p_t_sc = E_F[keep], V[keep], J[keep], p_t_sc[keep]
+        # Filter every per-Fermi-level array, found by type rather than named
+        # one at a time: an explicit list silently leaves any field added later
+        # at full length, which then misaligns against E_F.
         dens = replace(
             dens,
-            E_F=E_F,
-            p_f=dens.p_f[keep],
-            p_t=dens.p_t[keep],
-            p_s=dens.p_s[keep],
-            p_s_injected=dens.p_s_injected[keep],
-            n_f=dens.n_f[keep],
-            n_t=dens.n_t[keep],
-            n_s=dens.n_s[keep],
-            n_s_injected=dens.n_s_injected[keep],
-            theta_p=dens.theta_p[keep],
-            theta_n=dens.theta_n[keep],
-            valid=dens.valid[keep],
+            **{
+                f.name: getattr(dens, f.name)[keep]
+                for f in fields(dens)
+                if isinstance(getattr(dens, f.name), np.ndarray)
+            },
         )
 
     return ModelCurve(
@@ -1044,6 +1152,7 @@ def model_curve(
         valid=dens.valid,
         mu_eff=params.mu_0 * dens.theta_p,
         gamma=gamma,
+        theta_model=theta_model,
     )
 
 
@@ -1074,6 +1183,19 @@ def local_loglog_slope(
     FloatArray
         Slope at each point. ``nan`` where the window holds fewer than two
         usable points or the voltages within it do not vary.
+
+    Notes
+    -----
+    This regresses ``ln|J|`` on ``ln|V|`` and :func:`analyse_jv` then takes
+    ``gamma = 1/m``. The prototype spreadsheet instead regresses the other way
+    round, ``LINEST(ln V, ln j)`` in ``Data-calculations!K``, obtaining gamma
+    directly. The article defines the two as equal (``gamma = 1/m =
+    d ln V/d ln J``) and they are for noise-free data, but ordinary least
+    squares is not symmetric: with scatter, ``1/slope(y|x) != slope(x|y)``, and
+    the gap widens as the fit degrades. Fitting in the ``J`` direction is kept
+    here because it stays conditioned through the trap-filled-limit region,
+    where ``ln V`` is nearly constant and the prototype's direction regresses
+    against a near-degenerate abscissa.
 
     Raises
     ------
@@ -1207,7 +1329,7 @@ def analyse_jv(
         Defaults to ``device.temperature``.
 
         Pass the measured per-point temperature when you have it. The reference
-        workbook does, and it is not a refinement: in its dataset the recorded
+        prototype does, and it is not a refinement: in its dataset the recorded
         temperature ranges over 282-314 K, which moves the extracted ``E_F`` by
         0.075 eV. The Fermi level shifts the article reports are 0.046 eV and
         0.006 eV, so the temperature scatter is larger than the effect being
@@ -1250,7 +1372,7 @@ def analyse_jv(
     if np.any(T <= 0):
         raise ValueError("temperature must be positive")
 
-    # N_v and k_B T are taken at the same temperature. The workbook mixes them,
+    # N_v and k_B T are taken at the same temperature. The prototype mixes them,
     # evaluating k_B T per row from the measured value while leaving N_v at the
     # nominal temperature; that is worth about 0.002 eV in E_F over its own
     # 282-314 K range, small next to the 0.075 eV the k_B T term contributes,
@@ -1453,9 +1575,9 @@ def load_jv(
     temperature_in_celsius
         Convert the temperature column from degrees Celsius to kelvin.
     voltage_offset
-        Added to the voltage column, matching the workbook's ``Vmin`` shift.
+        Added to the voltage column, matching the prototype's ``Vmin`` shift.
     bin_size
-        Average this many consecutive points together. The workbook applies the
+        Average this many consecutive points together. The prototype applies the
         same averaging through its binning cell; it reduces noise in the ohmic
         region, where the raw current can change sign.
     delimiter, skip_header
@@ -1550,6 +1672,149 @@ def load_jv(
 
 
 # --------------------------------------------------------------------------- #
+# Parameter files
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True)
+class Configuration:
+    """Everything one run needs, as read from a TOML parameter file.
+
+    Groups the sample description, the five hand-selected parameters and the
+    modelling and numerical choices into a single value, so a configuration can
+    be version-controlled next to the measurement it belongs to instead of
+    living as edits to a module constant.
+
+    Attributes
+    ----------
+    name : str
+        Label for reports and plot titles.
+    material, device, params
+        The model inputs.
+    constants : Constants
+        CODATA by default; the prototype's rounded values on request.
+    trap_profile, gamma_model, theta_model, space_charge
+        Modelling choices. Defaults reproduce the prototype spreadsheet.
+    n_points, V_max, window, bin_size
+        Numerical choices. ``window`` and ``bin_size`` belong to the analysis
+        branch, the other two to the model branch.
+    """
+
+    name: str
+    material: Material
+    device: Device
+    params: ModelParams
+    constants: Constants = CODATA
+    trap_profile: TrapProfile = DEFAULT_TRAP_PROFILE
+    gamma_model: GammaModel = DEFAULT_GAMMA_MODEL
+    theta_model: ThetaModel = DEFAULT_THETA_MODEL
+    space_charge: SpaceCharge = DEFAULT_SPACE_CHARGE
+    n_points: int = 3001
+    V_max: float | None = None
+    window: int = DEFAULT_SLOPE_WINDOW
+    bin_size: int = 1
+
+
+_CONFIG_SECTIONS: Final[dict[str, tuple[str, ...]]] = {
+    "material": ("name", "E_c", "E_v", "eps_r", "m_eff_h", "m_eff_e"),
+    "device": ("thickness", "area", "temperature"),
+    "params": ("mu_0", "N_t", "E_t", "T_t", "E_F0"),
+    "model": (
+        "trap_profile", "gamma_model", "theta_model", "space_charge", "constants",
+    ),
+    "numerics": ("n_points", "V_max", "window", "bin_size"),
+}
+
+
+def _check_keys(section: str, given: dict, allowed: tuple[str, ...]) -> None:
+    """Reject unknown keys.
+
+    Silently ignoring an unrecognised key is the wrong failure mode here: a
+    misspelled ``E_t`` would leave the model running on its default while the
+    file appears to say otherwise, and nothing downstream would look wrong.
+    """
+    unknown = set(given) - set(allowed)
+    if unknown:
+        raise ValueError(
+            f"[{section}]: unknown key(s) {sorted(unknown)}; "
+            f"allowed keys are {list(allowed)}"
+        )
+
+
+def load_config(path: str) -> Configuration:
+    """Read a Configuration from a TOML parameter file.
+
+    The ``[material]``, ``[device]`` and ``[params]`` sections are required and
+    every key in them is mandatory. ``[model]`` and ``[numerics]`` are optional
+    and every key in them defaults to the value that reproduces the reference
+    prototype.
+
+    Raises
+    ------
+    ValueError
+        If a section or key is missing, unknown, or names a modelling choice
+        that is not one of the documented options.
+    """
+    try:
+        import tomllib
+    except ModuleNotFoundError:  # Python 3.10
+        import tomli as tomllib  # type: ignore[no-redef]
+
+    with open(path, "rb") as fh:
+        raw = tomllib.load(fh)
+
+    _check_keys("top level", {k: v for k, v in raw.items() if isinstance(v, dict)},
+                tuple(_CONFIG_SECTIONS))
+
+    for section in ("material", "device", "params"):
+        if section not in raw:
+            raise ValueError(f"{path}: missing required section [{section}]")
+        _check_keys(section, raw[section], _CONFIG_SECTIONS[section])
+        missing = set(_CONFIG_SECTIONS[section]) - set(raw[section])
+        if missing:
+            raise ValueError(f"{path}: [{section}] is missing {sorted(missing)}")
+
+    model = raw.get("model", {})
+    numerics = raw.get("numerics", {})
+    _check_keys("model", model, _CONFIG_SECTIONS["model"])
+    _check_keys("numerics", numerics, _CONFIG_SECTIONS["numerics"])
+
+    def choice(enum, key, default):
+        if key not in model:
+            return default
+        try:
+            return enum(model[key])
+        except ValueError:
+            raise ValueError(
+                f"{path}: [model] {key} = {model[key]!r} is not one of "
+                f"{[e.value for e in enum]}"
+            ) from None
+
+    constants_name = model.get("constants", "codata").lower()
+    if constants_name not in ("codata", "prototype"):
+        raise ValueError(
+            f"{path}: [model] constants = {model['constants']!r}; "
+            "expected 'codata' or 'prototype'"
+        )
+
+    return Configuration(
+        name=str(raw.get("name", raw["material"]["name"])),
+        material=Material(**raw["material"]),
+        device=Device(**raw["device"]),
+        params=ModelParams(**raw["params"]),
+        constants=Constants.prototype() if constants_name == "prototype" else CODATA,
+        trap_profile=choice(TrapProfile, "trap_profile", DEFAULT_TRAP_PROFILE),
+        gamma_model=choice(GammaModel, "gamma_model", DEFAULT_GAMMA_MODEL),
+        theta_model=choice(ThetaModel, "theta_model", DEFAULT_THETA_MODEL),
+        space_charge=choice(SpaceCharge, "space_charge", DEFAULT_SPACE_CHARGE),
+        n_points=int(numerics.get("n_points", 3001)),
+        V_max=numerics.get("V_max"),
+        window=int(numerics.get("window", DEFAULT_SLOPE_WINDOW)),
+        bin_size=int(numerics.get("bin_size", 1)),
+    )
+
+
+# --------------------------------------------------------------------------- #
 # Reference parameter sets
 # --------------------------------------------------------------------------- #
 
@@ -1563,10 +1828,10 @@ MAPBI3: Final[Material] = Material(
     name="MAPbI3", E_c=-3.93, E_v=-5.43, eps_r=32.0, m_eff_h=0.35, m_eff_e=0.35
 )
 
-#: The configuration found in the reference workbook: MAPbBr3 sample "S2",
+#: The configuration found in the prototype spreadsheet: MAPbBr3 sample "S2",
 #: dark, measured 2024-09-27. Note that this is neither of the two samples
 #: reported in the article, whose parameters are in Table 1.
-WORKBOOK_S2: Final[tuple[Material, Device, ModelParams]] = (
+MAPBBR3_S2: Final[tuple[Material, Device, ModelParams]] = (
     MAPBBR3,
     Device(thickness=6.0e-4, area=7.7e-6, temperature=299.0),
     ModelParams(mu_0=2.7e-3, N_t=4.7e16, E_t=-4.82, T_t=30.0, E_F0=-4.84),
@@ -1585,25 +1850,42 @@ def _summarise(curve: ModelCurve, params: ModelParams, material: Material) -> st
         f"E_F sweep        {curve.E_F[0]:.4f} -> {curve.E_F[-1]:.4f} eV",
         f"V range          {curve.V[ok].min():.4g} .. {curve.V[ok].max():.4g} V",
         f"J range          {curve.J[ok].min():.4g} .. {curve.J[ok].max():.4g} A/m2",
-        f"p_t max          {curve.p_t.max():.6g} m-3  "
-        f"({curve.p_t.max() / params.N_t:.4f} N_t)",
+        (
+            f"p_t max          {curve.p_t.max():.6g} m-3  "
+            f"({curve.p_t.max() / params.N_t:.4f} N_t)"
+        ),
         f"Theta range      {np.nanmin(curve.theta[curve.valid]):.4g} .. "
         f"{np.nanmax(curve.theta[curve.valid]):.4g}"
         + ("" if curve.valid.all()
            else f"   ({(~curve.valid).sum()} low-bias points flagged invalid)"),
-        f"mu_eff max       {np.nanmax(curve.mu_eff):.6g} m2/V/s "
-        f"(mu_0 = {params.mu_0:.4g})",
+        (
+            # Through `valid`, like Theta above: mu_eff = mu_0 * Theta, so an
+            # unmasked maximum reports a mobility above mu_0 wherever a
+            # low-bias point was flagged, which is what the mask exists to
+            # exclude.
+            f"mu_eff max       {np.nanmax(curve.mu_eff[curve.valid]):.6g} m2/V/s "
+            f"(mu_0 = {params.mu_0:.4g})"
+        ),
     ]
     return "\n".join(lines)
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Run the model branch on the reference workbook configuration."""
+    """Run the model branch on the prototype spreadsheet configuration."""
     parser = argparse.ArgumentParser(
         description=(
             "A-SCLC model. With no arguments, runs the model branch on the "
-            "reference workbook's MAPbBr3 S2 configuration and prints a summary."
+            "prototype spreadsheet's MAPbBr3 S2 configuration and prints a summary."
         )
+    )
+    parser.add_argument(
+        "--params",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="TOML parameter file describing the sample and the five model "
+        "parameters (see params/). Without it the bundled prototype S2 "
+        "configuration is used.",
     )
     parser.add_argument(
         "--trap-profile",
@@ -1618,9 +1900,15 @@ def main(argv: list[str] | None = None) -> int:
         help="gamma expression for the model branch (default: %(default)s)",
     )
     parser.add_argument(
-        "--workbook-constants",
+        "--theta-model",
+        choices=[t.value for t in ThetaModel],
+        default=DEFAULT_THETA_MODEL.value,
+        help="reading of Eq (S12) for Theta (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--prototype-constants",
         action="store_true",
-        help="use the rounded constants from the spreadsheet rather than CODATA",
+        help="use the rounded constants from the prototype rather than CODATA",
     )
     parser.add_argument(
         "--v-max",
@@ -1656,34 +1944,93 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--csv", type=str, default=None, help="write the model curve to this CSV path"
     )
+    parser.add_argument(
+        "--plot",
+        type=str,
+        default=None,
+        metavar="DIR",
+        help="write the model and analysis figures into this directory "
+        "(needs the 'plot' extra: pip install -e '.[plot]')",
+    )
+    parser.add_argument(
+        "--plot-format",
+        default="png",
+        help="comma-separated figure formats, e.g. png,svg (default: %(default)s)",
+    )
     args = parser.parse_args(argv)
 
-    material, device, params = WORKBOOK_S2
-    constants = Constants.workbook() if args.workbook_constants else CODATA
+    if args.params:
+        config = load_config(args.params)
+    else:
+        material, device, params = MAPBBR3_S2
+        config = Configuration(
+            name="MAPbBr3 S2, dark (bundled)",
+            material=material,
+            device=device,
+            params=params,
+        )
+    material, device, params = config.material, config.device, config.params
+
+    # An explicitly given flag overrides the file; a flag left at its default
+    # does not, so a parameter file can set a non-default choice and still be
+    # run without repeating it on the command line.
+    given = set(argv if argv is not None else sys.argv[1:])
+
+    def flag(name: str, value, from_file):
+        return value if any(a.startswith(name) for a in given) else from_file
+
+    constants = (
+        Constants.prototype() if args.prototype_constants else config.constants
+    )
+    trap_profile = flag(
+        "--trap-profile", TrapProfile(args.trap_profile), config.trap_profile
+    )
+    gamma_model = flag(
+        "--gamma-model", GammaModel(args.gamma_model), config.gamma_model
+    )
+    theta_model = flag(
+        "--theta-model", ThetaModel(args.theta_model), config.theta_model
+    )
+    # The file wins when it sets V_max, otherwise --v-max's own default stands.
+    # Falling through to a bare None would sweep E_F to the band edge, where the
+    # injected charge and the voltage with it run to 1e8 V.
+    v_max = (
+        config.V_max
+        if config.V_max is not None and not any(a.startswith("--v-max") for a in given)
+        else args.v_max
+    )
+    window = flag("--window", args.window, config.window)
+    bin_size = flag("--bin", args.bin_size, config.bin_size)
 
     curve = model_curve(
         params,
         material,
         device,
         constants,
-        profile=TrapProfile(args.trap_profile),
-        gamma_model=GammaModel(args.gamma_model),
-        V_max=args.v_max,
+        n_points=config.n_points,
+        profile=trap_profile,
+        gamma_model=gamma_model,
+        theta_model=theta_model,
+        space_charge=config.space_charge,
+        V_max=v_max,
     )
 
-    print(f"A-SCLC model branch: {material.name} (workbook sample S2)")
-    print(f"  trap profile   {args.trap_profile}")
-    print(f"  gamma model    {args.gamma_model}")
-    print(f"  constants      {'workbook' if args.workbook_constants else 'CODATA'}")
+    print(f"A-SCLC model branch: {config.name}")
+    print(f"  material       {material.name}")
+    print(f"  trap profile   {trap_profile.value}")
+    print(f"  gamma model    {gamma_model.value}")
+    print(f"  theta model    {theta_model.value}")
+    print(f"  constants      {'prototype' if constants != CODATA else 'CODATA'}")
     print()
     print(_summarise(curve, params, material))
 
+    analysis = None
     if args.data:
         measurement = load_jv(
             args.data,
             device,
             temperature_in_celsius=args.celsius,
-            bin_size=args.bin_size,
+            bin_size=bin_size,
         )
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
@@ -1694,7 +2041,7 @@ def main(argv: list[str] | None = None) -> int:
                 device,
                 mu_0=params.mu_0,
                 temperature=measurement.temperature,
-                window=args.window,
+                window=window,
             )
         print()
         print(f"measurement: {measurement.source}")
@@ -1721,8 +2068,36 @@ def main(argv: list[str] | None = None) -> int:
         np.savetxt(args.csv, data, delimiter=",", header=header, comments="")
         print(f"\nwrote {data.shape[0]} rows to {args.csv}")
 
+    if args.plot:
+        try:
+            from asclc_plot import write_figures
+        except ImportError as exc:
+            print(f"\ncannot plot: {exc}")
+            return 1
+        written = write_figures(
+            args.plot,
+            curve,
+            params,
+            material,
+            device,
+            analysis,
+            constants,
+            profile=trap_profile,
+            formats=tuple(f.strip() for f in args.plot_format.split(",") if f.strip()),
+        )
+        print(f"\nwrote {len(written)} figures to {args.plot}/")
+        for path in written:
+            print(f"  {path}")
+
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    # Re-enter through the module name rather than calling main() directly.
+    # Running the file as a script binds it as __main__; a sibling module that
+    # imports asclc then gets a second, distinct module object, so the enum
+    # members are not the same objects and every `profile is TrapProfile.X`
+    # comparison silently fails.
+    import asclc
+
+    raise SystemExit(asclc.main())

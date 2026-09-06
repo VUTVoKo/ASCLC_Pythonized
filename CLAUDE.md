@@ -1,25 +1,39 @@
 # Working on this repository
 
 A Python port of the A-SCLC model from Gavranovic et al., *Commun. Phys.* **8**, 280
-(2025), reimplemented from a reference Excel workbook. `docs/ASCLC_spec.md` is the
-specification and is authoritative; keep it in step with the code.
+(2025). **The article and its Supplementary Information are the reference.**
+`docs/ASCLC_spec.md` is the specification and is authoritative; keep it in step with the
+code.
 
-## Three things are unresolved in the sources, not in the code
+The model was first written as an Excel workbook, `data/SCLCKopecky.xlsx`. That was a
+prototype, not a specification: it departs from the published equations in three places
+and has several numerical defects. `docs/prototype_differences.md` lists every one. It is
+kept because it is the project's only independent numerical oracle — see Verification.
 
-Do not silently pick one. They are switchable options with documented defaults, and the
-default is whichever reproduces the reference workbook so existing results stay
-comparable. Section 7 of the spec has the evidence for each.
+## Three things the sources genuinely disagree on
 
-1. **Trap density of states.** The workbook computes `sech(u)/2` where Eq (S5) specifies
-   `sech²(u/2)/4`, and its prefactor normalizes neither form — the workbook's trap
-   integrates to `(π/4)·N_t` rather than `N_t`. `TrapProfile.SI_BIEXPONENTIAL` is the
-   better choice for new work; `WORKBOOK_SECH` is the default for validation.
-2. **γ in the model branch.** `T_t/T` (workbook) or `T_t/(T+T_t)` (the SI). This is *not
-   identifiable from J-V data*: γ rescales V and J by constants, so it translates the
-   curve on log-log without changing its shape. Do not propose fitting it.
+Do not silently pick one. They are switchable options; **the default follows the
+published equation**, and the prototype's reading stays available for reproducing
+pre-port results. Section 7 of the spec has the evidence for each.
+
+1. **Trap density of states.** Eq (S5) specifies `sech²(u/2)/4`, which integrates to
+   `N_t`; the prototype computes `sech(u)/2`, which integrates to `(π/4)·N_t`, so `N_t`
+   read off a saturation plot per step A6 comes out 27 % low.
+   `TrapProfile.SI_BIEXPONENTIAL` is the default; `PROTOTYPE_SECH` is retained.
+2. **γ in the model branch.** `GammaModel.SI_NOTE_M4` is the default: Supplementary
+   Note M4 as printed, `T/(T_t+T)` for `T_t ≥ T` and `0.5` otherwise — and every
+   published configuration has `T_t < T`, so **γ = 0.5 throughout**. `TT_OVER_T` =
+   `T_t/T` is what the prototype computed. A third option, `TT_OVER_T_PLUS_TT` =
+   `T_t/(T+T_t)`, is in **no source**; it was once mislabelled as the SI's and is kept
+   only for backward comparison. γ is *not identifiable from J-V data*: it rescales V and
+   J by constants, so it translates the curve on log-log without changing its shape. Do
+   not propose fitting it.
 3. **Θ.** Eq (S12) supports three readings that agree at high injection and differ by up
-   to 6× through the trap-filling region. The port follows the workbook's, which is
-   unbounded; `valid` flags where it exceeds 1.
+   to 6× through the trap-filling region; pick with `ThetaModel`. The default is Eq (S12)
+   as printed, `ABSOLUTE_OVER_TOTAL` = `p_f/(p_f + p_t)`, which is bounded by 1. The
+   prototype's `ABSOLUTE_OVER_INJECTED` = `p_f/p_inj` is unbounded and `valid` flags
+   where it exceeds 1. The analysis branch takes no such switch — there Eq (4) fixes
+   Θ = `μ_eff/μ₀`.
 
 ## Conventions that are easy to get wrong
 
@@ -29,7 +43,7 @@ most of the subtle errors made while porting:
 | Label | What it is |
 |---|---|
 | `p_t` in Eq (6) | total space charge, not the trapped part |
-| `ps`, `ns` in the workbook's `n(E)` | injected totals over the full DOS |
+| `ps`, `ns` in the prototype's `n(E)` | injected totals over the full DOS |
 | `ptm` in Figs 4c,d and 6 | the injected total (`p_space_charge`), not `p_t` |
 
 Also:
@@ -54,16 +68,21 @@ numbers.
 ## Verification
 
 Prefer an independent reference over self-consistency. The regression tests compare
-against the reference workbook's own computed values and against the article's published
+against the prototype's own cached cell values and against the article's published
 parameter sets; those catch things that checking the code against its own docstrings
-cannot. When adding a claim to the spec, add the test that verifies it.
+cannot. The prototype is not authoritative — the defaults no longer follow it — so each
+of those tests selects its options explicitly via `PROTOTYPE_DENSITIES`. Its analysis
+branch is degenerate (`Data-calculations!I1 = 0` returns γ = 0 for every row) and is not
+a regression target; only its model-branch columns are.
+
+When adding a claim to the spec, add the test that verifies it.
 
 ```bash
 pytest -q && ruff check .
 ```
 
 Before changing anything numerical, run the model branch end to end on
-`data/MAPbBr3_S2_dark.txt` and confirm the workbook regressions still hold.
+`data/MAPbBr3_S2_dark.txt` and confirm the regression tests still hold.
 
 ## Not implemented
 

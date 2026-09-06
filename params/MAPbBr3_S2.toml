@@ -1,0 +1,51 @@
+# MAPbBr3 S2, dark
+#
+# The sample the Excel prototype was built around (S2, dark, measured
+# 2024-09-27), and the one data/MAPbBr3_S2_dark.txt was measured on. Neither of
+# the two samples the article reports, so Table 1 is not a validation target.
+# For the prototype's own modelling choices use prototype_S2.toml.
+#
+# Units: energies eV (vacuum scale), concentrations m^-3, lengths m,
+# mobilities m^2 V^-1 s^-1, temperatures K.
+
+name = "MAPbBr3 S2, dark"
+
+# Fixed properties, from the literature.
+[material]
+name = "MAPbBr3"
+E_c = -3.36  # eV
+E_v = -5.58  # eV
+eps_r = 25.5  # -
+m_eff_h = 0.305  # m*/m_e
+m_eff_e = 0.32  # m*/m_e
+
+# Measured geometry. `area` only converts current to density.
+[device]
+thickness = 0.0006  # m
+area = 7.7e-06  # m^2
+temperature = 299.0  # K
+
+# The five hand-selected parameters (Table S2 'Variable').
+[params]
+mu_0 = 0.0027  # m^2 V^-1 s^-1
+N_t = 4.7e+16  # m^-3
+E_t = -4.82  # eV
+T_t = 30.0  # K
+E_F0 = -4.84  # eV
+
+# Optional. Every default follows the published equation; the prototype
+# spreadsheet's readings are the alternatives. See section 7 of
+# docs/ASCLC_spec.md and docs/prototype_differences.md before changing one.
+[model]
+# trap_profile = "si_biexponential"   # prototype_sech | gaussian
+# gamma_model  = "SI-M4"             # Tt/T | Tt/(T+Tt)
+# theta_model  = "absolute_over_total"
+# space_charge = "injected_total"
+# constants    = "codata"            # or "prototype"
+
+# Optional numerical choices.
+[numerics]
+V_max = 10.0
+# n_points = 3001
+# window   = 7    # points per local slope fit
+# bin_size = 1

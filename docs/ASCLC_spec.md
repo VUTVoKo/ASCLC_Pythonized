@@ -2,12 +2,17 @@
 
 Specification for `asclc.py`, a Python implementation of the advanced space-charge-limited current
 model of Gavranovic, Zmeskal, Weiter and Pospisil, *Communications Physics* **8**, 280 (2025),
-ported from the reference Excel workbook `SCLCKopecky.xlsx`.
+ported from the reference Excel prototype `SCLCKopecky.xlsx`.
 
-Validated against the workbook's own computed values and the article's published parameter sets;
+Validated against the prototype's own computed values and the article's published parameter sets;
 see section 6. Three items in section 7 are unresolved in the sources rather than in the port: the
 trap distribution (7.1), the model-branch γ, which is not identifiable from J-V data (7.2), and which
-of three readings of Eq (S12) defines Θ (7.3).
+of three readings of Eq (S12) defines Θ (7.3). Each is a keyword argument — `TrapProfile`,
+`GammaModel`, `ThetaModel` — whose default follows the published equation. The prototype's reading
+is retained for each; see `prototype_differences.md`.
+
+Section 7.1 is settled against Eq (S5) and the prototype's `g(E)!M13` directly; 7.2 and 7.3 record
+places where the prototype and the printed equations genuinely disagree.
 
 ---
 
@@ -40,7 +45,7 @@ change to the module.
 ## 2. Equations
 
 Energies in eV, concentrations m⁻³, mobilities m² V⁻¹ s⁻¹, lengths m, current density A m⁻².
-Constants default to CODATA 2018; `Constants.workbook()` reproduces the workbook's rounded values.
+Constants default to CODATA 2018; `Constants.prototype()` reproduces the prototype's rounded values.
 
 ### Density of states
 
@@ -61,7 +66,7 @@ Localized states, Eq (S5), biexponential:
     g_t(E) = (N_t / k_B T_t) · e^u / (1 + e^u)²,    u = (E − E_t)/(k_B T_t)
 
 This integrates to exactly `N_t`. Eq (S6) offers a Gaussian alternative with `σ = 2 k_B T_t`. The
-workbook implements neither; see 7.1.
+prototype implements neither; see 7.1.
 
 ### Occupation
 
@@ -115,9 +120,11 @@ Three points that are easy to get wrong, each pinned by a test:
 ### γ
 
     Analysis branch:  γ = 1/m from the local slope of the data
-    Model branch:     γ = T_t/T                          (workbook, j(U)!C6)
+    Model branch:     γ = T/(T_t+T) if T_t ≥ T else 0.5  (Note M4 as printed; default)
+                      γ = T_t/T                          (prototype, j(U)!C6)
 
-The model branch value is a positioning convention rather than a derived quantity; see 7.2.
+The model branch value is a positioning convention rather than a derived quantity; see 7.2, which
+also records a third expression that is in the code but in none of the sources.
 
 ---
 
@@ -130,7 +137,7 @@ recorded temperature spans 282–314 K, moving the extracted `E_F` by 0.075 eV. 
 the article reports are 0.046 eV and 0.006 eV, so the temperature scatter exceeds the effect being
 measured; holding T at a nominal value reassigns that scatter to the physics.
 
-`N_v` and `k_B T` are evaluated at the same temperature. The workbook takes `k_B T` per row from the
+`N_v` and `k_B T` are evaluated at the same temperature. The prototype takes `k_B T` per row from the
 measured column while leaving `N_v` at the nominal value, worth about 0.002 eV over its own range.
 
 ---
@@ -187,6 +194,16 @@ regardless of sweep length. Results are chunk-independent to 2e-15.
 **Cost.** `model_curve` at 3001 points runs in about 0.5 s, fast enough to tune against
 interactively.
 
+**Direction of the slope fit.** `local_loglog_slope` regresses `ln|J|` on `ln|V|` and `analyse_jv`
+then takes `γ = 1/m`. The prototype regresses the other way, `Data-calculations!K =
+LINEST(ln V, ln j)`, obtaining γ directly. The article defines the two as equal — `γ = 1/m =
+d ln V/d ln J` — and they are for a clean power law, but ordinary least squares is not symmetric:
+with scatter `1/slope(y|x) ≠ slope(x|y)`, and on the bundled measurement the two differ by more than
+5 % at an 11-point window. Fitting in the `J` direction is kept because it stays conditioned through
+the trap-filled-limit region, where `ln V` is nearly constant and the prototype's direction regresses
+against a near-degenerate abscissa. The 1e-4 agreement reported in section 6 does not probe this:
+the prototype's own window is one point wide, so both directions return zero there.
+
 ---
 
 ## 6. Validation
@@ -196,9 +213,15 @@ dark and illuminated — produce curves spanning the measured 0–3 V range with
 throughout, and Θ ≤ 1 across the in-domain region. Saturated space charge lands within a factor of
 0.64–1.67 of the `p_t` values in Table 1.
 
-**Workbook.** Against its own computed values for the MAPbBr₃ S2 configuration:
+**Prototype.** The prototype spreadsheet is not authoritative — the defaults follow the published
+equations instead — but its cached cell values are the project's only *independent* numerical
+oracle, so the comparison is kept. Each of these tests selects the prototype's options explicitly
+(`PROTOTYPE_DENSITIES` in the test module); `prototype_differences.md` says what those options
+change.
 
-| Quantity | Workbook cell | Agreement |
+Against its own computed values for the MAPbBr₃ S2 configuration:
+
+| Quantity | Prototype cell | Agreement |
 |---|---|---|
 | `p_f` | `n(E)!L` | 1.5–2 % |
 | `p_inj` | `n(E)!O` | 0.07–1.5 % |
@@ -207,11 +230,13 @@ throughout, and Θ ≤ 1 across the in-domain region. Saturated space charge lan
 | `V` | `j(U)!C` | 0.1–1.5 % |
 | `J` | `j(U)!E` | 2–3 % |
 | `Θ`, `μ_eff` | `n(E)!N`, `j(U)!K` | 1–2 % |
-| analysis branch `μ_eff`, `p_f`, `p_t`, `Θ` | `MODEL!I,K,M,Q` | 1e-4 |
 
-The residual on model-branch quantities is the workbook's rectangle rule on a 3 meV grid across the
-√ band edge; the values here are the more accurate ones. The analysis branch agrees to rounding
-because both evaluate the same closed-form expressions.
+The residual is the prototype's rectangle rule on a 3 meV grid across the √ band edge; the values
+here are the more accurate ones.
+
+**Its analysis branch is not a regression target.** `Data-calculations!I1 = 0` makes every `LINEST`
+a one-point regression returning γ = 0 for all 210 rows, so `MODEL!I,K,M,Q` carry no slope
+information to compare against. See 8.
 
 A round trip — model branch generates (V, J), analysis branch reads it back — recovers `p_f` to 4 %
 and `E_F` to 1 meV, the residual being the γ definition mismatch of 7.2.
@@ -222,33 +247,56 @@ and `E_F` to 1 meV, the residual being the γ definition mismatch of 7.2.
 
 ### 7.1 Trap density of states
 
-The workbook's trap column reads `.../(1 + EXP(u)^2)`. Excel binds `^` before `+`, so this evaluates
+The prototype's trap column reads `.../(1 + EXP(u)^2)`. Excel binds `^` before `+`, so this evaluates
 `1 + e^{2u}` rather than `(1 + e^u)²`, giving a `sech(u)/2` profile where Eq (S5) specifies
-`sech²(u/2)/4`. With the workbook's `N_t/(2 k_B T_t)` prefactor:
+`sech²(u/2)/4`. With the prototype's `N_t/(2 k_B T_t)` prefactor:
 
 | | ∫ g_t dE |
 |---|---|
 | Eq (S5) as printed | `N_t` |
-| Workbook | `(π/4) N_t` = 0.7854 `N_t` |
+| Prototype | `(π/4) N_t` = 0.7854 `N_t` |
 
-The π/4 is exact — `∫sech = π` against `∫sech² = 2` — and reproduces in the workbook's own cached
+The π/4 is exact — `∫sech = π` against `∫sech² = 2` — and reproduces in the prototype's own cached
 values. The prefactor normalizes neither form: with Eq (S5) it would give `N_t/2`.
 
 The two profiles share a peak height and an `e^{-|u|}` tail, so they are indistinguishable on a
 log-scale DOS plot; the difference is entirely in the area.
 
-**Recommendation for new work: `TrapProfile.SI_BIEXPONENTIAL`.** It is what the SI documents and the
-only variant whose integral is `N_t`, which is what makes `N_t` a concentration rather than a scale
-factor. The default is `WORKBOOK_SECH` so the port reproduces existing curves; that default is for
-validation.
+**`TrapProfile.SI_BIEXPONENTIAL` is the default.** It is what the SI documents and the only variant
+whose integral is `N_t`, which is what makes `N_t` a concentration rather than a scale factor. Under
+`PROTOTYPE_SECH` the trapped population saturates at 0.785·`N_t`, so an `N_t` read off a saturation
+plot per step A6 comes out 27 % low. `PROTOTYPE_SECH` is retained for reproducing pre-port results;
+see `prototype_differences.md`.
 
 **To decide empirically:** refit `N_t` under both profiles across dark/light or a temperature series.
 The discriminating data is in the shoulders of `p_t(E_F)`, not at its peak.
 
 ### 7.2 γ in the model branch
 
-`T_t/T` (workbook) or `T_t/(T + T_t)` (the most plausible reading of Note M4, whose PDF text is not
-legible enough to be certain). At `T_t = 30 K, T = 299 K`: 0.1003 versus 0.0912.
+Supplementary Note M4 gives, as printed:
+
+    γ = T/(T_t + T)   for T_t ≥ T,      γ = 0.5   for T_t < T
+
+`T/(T_t + T)` is `1/(1 + T_t/T)`, which is `1/m` for the Mark–Helfrich trap-filled-limit exponent
+`m = 1 + T_t/T` of an exponential trap distribution. That is what reconciles Note M4 with the
+article's own definition `γ = 1/m`, so the printed expression is the principled one rather than a
+guess.
+
+The prototype does not use it. Cell `j(U)!C6 = MODEL!B30/MODEL!B9` computes `T_t/T`, which is the
+excess exponent `m − 1`, not `1/m`. And since every configuration in the article and the prototype
+has `T_t < T`, Note M4 as printed selects its constant branch throughout: `γ = 0.5`.
+
+| `GammaModel` | Expression | At `T_t = 30 K, T = 299 K` | Source |
+|---|---|---|---|
+| `SI_NOTE_M4` (default) | `T/(T_t+T)` if `T_t ≥ T` else `0.5` | 0.5 | Note M4 as printed |
+| `TT_OVER_T` | `T_t/T` | 0.1003 | prototype `j(U)!C6` |
+| `TT_OVER_T_PLUS_TT` | `T_t/(T+T_t)` | 0.0912 | **none** |
+
+`TT_OVER_T_PLUS_TT` appears in no source. It is the complement `1 − T/(T_t+T)` of the Note M4
+expression, and revisions of this port before 2026-09-06 carried it mislabelled as the SI's reading,
+on the mistaken grounds that the PDF text layer was illegible. It is retained only so that
+comparisons against those revisions stay reproducible; the text is legible at sufficient
+magnification and says what the table says.
 
 **This is not identifiable from J-V data.** γ enters only through `1/[(1−γ)(2−γ)]` in V and `(2−γ)`
 in J, neither depending on `E_F`. Changing it rescales both axes by constants: on log-log a rigid
@@ -267,29 +315,40 @@ fixed-point iteration, left as a modelling decision.
 Three readings are defensible, they agree at high injection, and they differ by up to a factor of six
 through the trap-filling region — which is where the physics of interest sits.
 
-| Reading | Bounded by 1? | Used by |
-|---|---|---|
-| absolute `p_f / (p_f + p_t)` | yes | Eq (S12) as printed |
-| absolute `p_f / p_inj` | **no** | the workbook, and this port |
-| injected `Δp_f / p_inj` | yes | neither |
+| `ThetaModel` | Reading | Bounded by 1? | Used by |
+|---|---|---|---|
+| `ABSOLUTE_OVER_TOTAL` (default) | absolute `p_f / (p_f + p_t)` | yes | Eq (S12) as printed, in both the SI and the article |
+| `ABSOLUTE_OVER_INJECTED` | absolute `p_f / p_inj` | **no** | the prototype, `n(E)!N = ABS(L/J)` |
+| `INJECTED_OVER_INJECTED` | injected `Δp_f / p_inj` | yes | neither |
 
-The port follows the workbook, which also keeps the two branches consistent: the analysis branch's
+The prototype's reading keeps the two branches numerically consistent: the analysis branch's
 `Θ = μ_eff/μ₀ = p_f/p_t` likewise puts an absolute `p_f` from Eq (5) over the Eq (6) space charge.
+The default instead follows Eq (S12) as printed, which is what the article's Eq (2) defines Θ to be;
+the two branches then differ by the equilibrium population, an inconsistency that is in the sources
+rather than introduced here.
 
 That form is unbounded. Where the equilibrium free population rivals the injected charge, Θ exceeds
-1 and `μ_eff = μ₀Θ` exceeds the microscopic mobility, which cannot happen. The workbook stays under 1
+1 and `μ_eff = μ₀Θ` exceeds the microscopic mobility, which cannot happen. The prototype stays under 1
 for its own parameters but the article's MAPbBr₃ illuminated set reaches Θ = 1.41 immediately above
 `E_F0`.
 
 This is treated as a domain limit rather than hidden by redefinition: Θ > 1 clears the `valid` mask
 in both branches (section 4). In the model branch it is false only within a few millivolts of zero
-bias, so whether any grid point lands there depends on the sampling. `p_f`, `p_t` and `p_s_injected`
-are all returned, so the other two readings are one division away.
+bias, so whether any grid point lands there depends on the sampling. Under the other two readings Θ
+is a fraction by construction and `valid` never fires on it.
+
+The reading is selected by the `theta_model` argument to `carrier_densities` and `model_curve`, on
+the same footing as `TrapProfile`, `GammaModel` and `SpaceCharge`. `p_f`, `p_t`, `p_f_injected` and
+`p_s_injected` are all returned besides, so any other combination is one division away.
+
+**The analysis branch does not take this switch.** There Θ is fixed by Eq (4) as `μ_eff/μ₀`, which is
+identically `p_f/p_t` from Eqs (5) and (6); it is a consequence of the closed-form extraction rather
+than a choice. It corresponds to the default reading, since Eq (6) returns the total space charge.
 
 ### 7.4 Naming hazards in the sources
 
 Several quantities are labelled as one thing and computed as another. These account for most of the
-subtle discrepancies between the workbook, the article and a naive reading:
+subtle discrepancies between the prototype, the article and a naive reading:
 
 | Label | What it is |
 |---|---|
@@ -303,9 +362,11 @@ trapped population, which starts at 0.54·`N_t` rather than zero.
 
 ---
 
-## 8. Notes on the reference workbook
+## 8. Notes on the prototype spreadsheet
 
-Findings that affect how the workbook's own outputs should be read.
+The model was first written as `SCLCKopecky.xlsx`. It was a prototype, not a specification:
+`prototype_differences.md` is the full account of where it departs from the published equations and
+what each departure changes. What follows is only what affects reading its own outputs.
 
 **`Data-calculations!I1 = 0`.** This is the binning width for every `AVERAGE(INDIRECT(...))` and
 `LINEST(INDIRECT(...))` on the sheet. At zero, each `LINEST` regresses one point against one point
@@ -320,7 +381,7 @@ the article, so Table 1 is not a validation target.
 
 **Supplementary Table S4 `N_v`.** The tabulated values do not follow from Eq (S4), which gives
 ≈ 4.2e18 cm⁻³ for MAPbBr₃ against the table's 4.52e16 cm⁻³; the MAPbI₃ entry of 5.17e10 cm⁻³ is six
-orders adrift. The formula agrees with the workbook and with the standard
+orders adrift. The formula agrees with the prototype and with the standard
 `2.5e19 cm⁻³ (m*/m₀)^{3/2}`. The port follows the formula.
 
 **Dead names.** All 34 defined names are `OFFSET(#REF!,...)`, each duplicated four times.
@@ -330,8 +391,10 @@ orders adrift. The formula agrees with the workbook and with the standard
 ## 9. API
 
     Constants, Material, Device, ModelParams    inputs
+    Configuration, load_config                  parameter files
     EnergyGrid                                  quadrature configuration
-    TrapProfile, GammaModel, SpaceCharge        modelling choices
+    TrapProfile, GammaModel,                    modelling choices
+      SpaceCharge, ThetaModel
     trap_dos, valence_band_dos,                 density of states
       conduction_band_dos, effective_dos
     fermi_dirac, carrier_densities              occupation
@@ -340,14 +403,44 @@ orders adrift. The formula agrees with the workbook and with the standard
     local_loglog_slope                          log-log slope
     load_jv      -> Measurement                 measurement files
 
-`python asclc.py` runs the model branch on the workbook configuration and prints a summary.
+`asclc_plot` holds the figures and is the only place `matplotlib` is imported, so the model stays
+importable without it (`pip install -e '.[plot]'`). `write_figures` produces the seven plots the
+prototype embeds and the article publishes:
+
+| Figure | Quantity | Article |
+|---|---|---|
+| `jv` | J against V, log-log | Fig. 2 |
+| `mobility` | μ_eff against V | Fig. 3 |
+| `concentrations` | `p_space_charge` and `p_f` against V | Fig. 4a,b |
+| `bandgap_map` | concentrations against E, with `g(E)` | Figs. 4c,d and 6 |
+| `fermi_level` | E_F against V | Fig. 5 |
+| `theta` | Θ against V | Fig. S19 |
+| `pt_vs_pf` | space charge against free charge | Figs. S20, S22 |
+
+Model curves are lines, extracted points are markers, and both are drawn through `valid`: rejected
+points appear hollow and faded rather than being dropped, per section 4. `ntm` is not drawn on the
+bandgap map — `n_s_injected` is the exact negative of `p_s_injected`, so on a hole-injection sweep it
+is the same curve as `ptm`.
+
+`python asclc.py` runs the model branch on the prototype configuration and prints a summary.
+
+A run is described by a TOML parameter file rather than by editing the module. `params/` ships the
+prototype's S2 configuration and the article's four published sets; `load_config` returns a
+`Configuration` carrying the sample, the five parameters, and the modelling and numerical choices.
+Sections `[material]`, `[device]` and `[params]` are required in full; `[model]` and `[numerics]` are
+optional and default to the published-equation values. **Unknown keys are an error** — a
+misspelled `E_t` would otherwise leave the model on its default while the file appeared to say
+otherwise. A command-line flag overrides the file only when it is given explicitly.
 
     --data PATH      also load and analyse a measurement file
     --celsius        its temperature column is in degrees Celsius
     --bin N          average N consecutive points
     --window N       points per local slope fit
     --csv PATH       write the model curve
-    --trap-profile, --gamma-model, --v-max, --workbook-constants
+    --params PATH    TOML parameter file (see params/)
+    --plot DIR       write the figures (needs the 'plot' extra)
+    --plot-format    comma-separated formats, default png
+    --trap-profile, --gamma-model, --theta-model, --v-max, --prototype-constants
 
 ---
 

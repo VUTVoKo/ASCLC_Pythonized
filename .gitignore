@@ -11,3 +11,4 @@ venv/
 .idea/
 *.csv
 !data/*.csv
+figures/
