@@ -1,0 +1,40 @@
+# MAPbBr3 S2, dark -- example parameter file
+#
+# Plain "key = value" lines under section headers. '#' starts a comment.
+# Units: energies eV (vacuum scale), concentrations m^-3, lengths m,
+# mobilities m^2 V^-1 s^-1, temperatures K.
+
+name = MAPbBr3 S2, dark
+
+[material]
+name    = MAPbBr3
+E_c     = -3.36      # conduction band edge, eV
+E_v     = -5.58      # valence band edge, eV
+eps_r   = 25.5       # relative permittivity
+m_eff_h = 0.305      # m*/m_e, holes
+m_eff_e = 0.32       # m*/m_e, electrons
+
+[device]
+thickness   = 6.0e-4  # m
+area        = 7.7e-6  # m^2, converts measured I to J
+temperature = 299.0   # K, fallback when VJT.dat carries no T column
+
+# The five hand-selected parameters (Table S2 'Variable').
+[params]
+mu_0 = 2.7e-3   # m^2 V^-1 s^-1
+N_t  = 4.7e16   # m^-3
+E_t  = -4.82    # eV
+T_t  = 30.0     # K
+E_F0 = -4.84    # eV
+
+# Optional. Defaults follow the published equations; see docs/ASCLC_spec.md s7.
+[model]
+# trap_profile = si_biexponential   # prototype_sech | gaussian
+# gamma_model  = SI-M4              # Tt/T
+# theta_model  = absolute_over_total
+
+[numerics]
+V_max    = 10.0
+n_points = 501    # points in the E_F sweep
+window   = 7      # points per local slope fit
+bin_size = 1      # average this many consecutive measured points
