@@ -1,0 +1,13 @@
+# Virtual environment (Python 3.14, see README/setup)
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Excel lock files, created while a workbook is open
+~$*
+
+# Jupyter
+.ipynb_checkpoints/
