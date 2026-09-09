@@ -1,0 +1,853 @@
+
+PAGE 1
+communications physics Article
+A Nature Portfolio journal
+https://doi.org/10.1038/s42005-025-02202-1
+Advanced space-charge-limited current
+model for analyzing fermi level shift in the
+bandgap of halide perovskites
+Check for updates
+Stevan Gavranovic , Oldrich Zmeskal, Martin Weiter & Jan Pospisil
+Understanding how charge carriers behave in semiconductors is key to improving next-generation
+optoelectronic devices. Here we introduce an advanced space-charge-limited current model that
+enables detailed extraction of mobility, charge carrier concentrations, and Fermi level position from
+voltage- and energy-dependent analysis. Applying this model to two promising halide perovskites,
+methylammonium lead bromide and methylammonium lead iodide, we observe a strong
+photoresponse, with signi ﬁcant increases in microscopic mobility and free carrier density under
+illumination. Interestingly, the behavior of trapped charges and Fermi level shifts differs between the
+two materials, revealing distinct transport mechanisms. This model offers a powerful tool for
+characterizing semiconductors and could accelerate the development of more efﬁcient light-sensitive
+devices.
+The rapid increase in power conversion ef ﬁciency, from 3.8% (2009)1 to
+26.1% (2023)2, reported in halide perovskites solar cells (PSCs), has started a
+new generation of photovoltaics and put these materials in the focus of
+optoelectronic research. Their unique properties (high absorption
+coefﬁcient3– 5,t u n a b l eb a n d g a p6– 8, long range carrier mobilities3,9– 12,a n dl o w
+defect density13– 15 opened a broad spectrum of possible applications such as
+solar cells16– 21, photodetectors15,22– 26, ﬁeld-effect transistors27– 30, light emit-
+ting diodes31– 34, memristors35,36, and lasers 37– 40. Organometal halide per-
+ovskites typically come in the form o f organic-inorganic crystalline
+compounds with the general formula of APbX3
+41, where A is a monovalent
+cation (methylammonium, MA+, formamidinium FA+ or cesium Cs+), and
+X is a halide anion (chloride Cl– ,b r o m i d eB r– and iodide I– ).
+Interestingly, their key optoelect ronic properties, such as optical
+bandgap, can be easily tailored by chemical engineering before the synthesis
+of these solution-processable mater ials. For example, the bathochromic
+shift, that is the decrease of optical bandgap reported in MAPbX3,o c c u r s
+when chloride (2.97 eV) is substituted with larger halide anions, bromide
+(2.22 eV) or iodide (1.50 eV)42. Other important factors in future practical
+applications are represented by the c harge carrier transport and defect
+density, both of which are highly dependent on the type of the perovskite
+active layer. It has been widely accepted that perovskite single crystals exhibit
+signiﬁcantly better charge transport properties compared to those of their
+polycrystalline thin ﬁlm counterparts. The bulk perovskite single crystals
+show long periodicity of crystalline lattice and very low density of trap states
+(2– 200 × 109 cm– 3)43,44. On the contrary, multiple grain boundaries in
+polycrystalline thin ﬁlms create deep trap states (trap density
+≈1×1 0 17 cm– 3)45, and they also promote the electron-hole recombination;
+hence, they decrease the effectivity ofcharge carrier transport. Thus, single
+crystals make a good platform to explore the intrinsic properties of orga-
+nometal halide perovskites.
+Although extensive research has b een performed, there is a lack of
+unanimous experimental and modeling procedures to determine both the
+charge carrier mobilities and concentration of trapped charge carriers in
+organometal halide perovskite. To determine the above parameters, the
+space-charge limited current (SCLC) method is commonly used. Essen-
+tially, this method is based on the complex analysis of current-voltage
+characteristics (also known as the J-V curves) of semiconductor materials
+with trap states. It identiﬁes and distinguishes the three regions present in
+J-V curves: (1) ohmic region (i.e. the slopeof current-voltage characteristic is
+equal to one); (2) trap ﬁling region (the slope is greater than 2); and (3)
+quadratic region (the slope is equal to 2, i.e. the monoenergetic trap state or
+Mott– Gurney region).
+However, this method has multiple shortcomings that may lead to
+underestimation and inaccurate interpretation of J-V characteristics.
+Firstly, commonly applied approaches use tangent ﬁtting44– 49 to identify
+the different regions of J-V characteristics and estimate the electric
+properties of the perovskite materials (mainly charge carrier mobility and
+concentration of the trapped states). Secondly, the halide perovskite
+materials are known for their electronic and ionic nature50– 52, which affect
+the J-V characteristics and complicate their analysis and interpretation.
+Many efforts have been put toward understanding of ionic processes and
+their effects on J-V hysteresis and SCLC parameters. Duijnstee et al.53 and
+Le Corre et al. 54 developed complex experimental and modeling
+approach to describe the ionic effects on the measured J-V characteristics
+Faculty of Chemistry, Brno University of Technology, Purkynova, Brno, Czech Republic. e-mail: xcgavranovic@vutbr.cz; pospisilj@fch.vut.cz
+Communications Physics |           (2025) 8:280 1
+1234567890():,;
+1234567890():,;
+
+PAGE 2
+and quantify the concentrations of ions using drift diffusion model. In a
+recent SCLC analysis of MAPbI 3-based devices Sajedi Alvar, et al. 55
+demonstrate the importance of temperature-dependent ion dynamics
+and temperature- and frequency-dependent dielectric constants. The
+authors suggest that only experimentally validated parameters should be
+used to build the SCLC model. Though the latest SCLC modeling
+approach enabled precise simulation of J-V curves and determination of
+ion inﬂuence on the shape of the characteristics, some of the fundamental
+properties describing the charge dynamics (e.g. energy and voltage
+dependance of modeled parameters) are still not described in detail.
+Herein, we report a modeling approach to determine the ener-
+getic distribution of the charge carr ier (electron and holes) mobilities,
+of trapped state density, and of F ermi level using advanced space
+charge limited current (A-SCLC) model. With this model, we can
+quantify the SCLC parameters in different regimes of the J-V curves
+(ohmic, trap ﬁlling, and quadratic regions) associated with the charge
+carrier injection properties of the perovskite-based devices and map
+the trap ﬁlling inside of the semiconductor bandgap. Moreover, we
+simulated the in ﬂuence of Fermi level posit ion, temperature, trap
+position and trap temperature on the energetic dependencies of the
+trapped charge concentration (Supplementary Figs. S8 – S12). The
+capabilities of the proposed A-SCLC model were presented on two
+perspectives organometal halide perovskite single crystals MAPbBr 3
+and MAPbI 3 (see Supplementary Fig. S1). The data for evaluation
+were collected by measuring the J-V characteristics of Carbon/Per-
+ovskite/Carbon devices in dark and under illumination. In addition,
+we discussed the effect of thermodynamic Fermi level shift and dif-
+ferent charge injection prope rties of the studied materials.
+Results and discussion
+Analysis of J-V curves
+In the early works56,57, A. Rose determined that the two requirements have to
+be fulﬁlled in order to observe space charge limited currents in low con-
+ducting materials: (i) at least one of the contact must be ohmic (i.e. the
+contact that provides an excess of carriers ready to enter the studied
+material) and (ii) the studied material has to be relatively free from trap
+states. The ﬁrst requirement was ful ﬁl l e db yc o n t a c t i n gp e r o v s k i t e si n
+sandwich-like (Supplementary Fig. S5) carbon contacts (e.g. C/MAPbBr3/
+C), and the monocrystalline form of perovskites were used to ensure the
+high periodicity of the crystalline lattice and low trap concentration needed
+to ful ﬁll the second requirement. Structural and optical analysis of the
+prepared materials are presented in Supplementary Figs. S3, S4.
+The current-voltage characteristics of a semiconductor material with
+trap states can be divided into three regions: ohmic, trapﬁlling and quadratic
+region. The electric properties of these materials can be analyzed by two
+current equations that describe theJ-V curves of SCLC. First is Ohm’sl a w
+describing the linear current dependence on applied bias voltage:
+J ¼ eμ0pf
+V
+L ð1Þ
+where e is an elementary charge (e = 1.602·10– 19 C), µ0 is the microscopic
+mobility,pf (nf) is a concentration of free charge carriers (electrons or holes),
+L represents the thickness of the sample. The second equation is given by the
+combination of Poisson’se q u a t i o na n dO h m’sl a w :
+J ¼ ε0εrμ0Θð1 /C0 γÞð2 /C0 γÞ2 V2
+L3 ð2Þ
+where ε0 is vacuum permittivity (ε0 = 8.854·10– 12 Fm – 1), εr is relative per-
+mittivity (dielectric constant), Θ is the fraction of free ( pf) and total ( ps)
+charge carrier concentrations 45,53 in the material (i.e. Θ ¼ pf =ps ¼
+pf =ðpf þ ptÞ,w h e r ept is a trapped charge concentration), andγ is inversely
+proportional to the logarithmic slope ( m) of the current-voltage
+characteristic (i.e. γ ¼ 1=m ¼ dl nV =dl nJ )58,59. The parameter theta Θ
+and gammaγ can be used to identify different regions of theJ-V curves. For
+instance, if the gamma equals one ( m ¼ 1 ! γ ¼ 1), ohmic region
+occurs. If the injected charge accumulates in the semiconductor (i.e. space
+charge region), the slope of the J-V curve increases and γ takes on values
+between zero and one (0 < γ < 1 ). In the space charge region, we can
+observe two different situations: (i) the slope m approaches in ﬁnity
+(m !1) γ ¼ 1) for trap ﬁlled limit (TFL), and (ii) Mott – Gurney
+region for slope m equals two (m ¼ 2 ) γ ¼ 1 = 2). If the latter is the
+case, then Eq. (2) transforms to Mott– Gurney law
+J ¼ 9
+8 ε0εrμ0Θ V2
+L3 ð3Þ
+However, in some special cases, due to anomalies of charge transport
+(e.g. injection barrier), the slopem can be lower than one, in which case the
+current suddenly decreases in a forward biased scan. The parameter thetaΘ
+equals one (Θ ¼ 1) in ohmic region whenpt ¼ 0 as well as in Mott-Gurney
+region, whereps /C25 pf (pt ≪ pf). In other regions ofJ-V curves theta takes on
+values between zero and one (0 <Θ < 1). The full explanation of the model
+including different regions of the curvesand graphical presentation of theta
+are described in Supplementary Information (see Supplementary
+Figs. S13– S15). All described relations are derived for hole-only devices.
+Figure 1 illustrates the banddiagrams of two studied perovskite-based
+devices (C/MAPbBr3/C and C/MAPbI3/C) before contact, after contact at
+zero bias voltage and after applied bias voltage (forward scan). Moreover, the
+ﬁgure illustrates the band bending caused by illumination and applied bias
+voltage. As evident, the Fermi level equilibrates after contacting, and bands
+in MAPbBr3 and MAPbI3 bend for 0.172 eV and 0.126 eV, respectively. The
+thermodynamic Fermi level changes due to the illumination causing addi-
+tional bending (0.260 eV for MAPbBr3 and 0.254 eV MAPbI3). The energy
+difference between the thermodynamic Fermi level positions under dark
+and illuminated conditions is reffered to as the Fermi level shift.
+Figure2 shows theJ-V characteristics of MAPbBr3 and MAPbI3 single
+crystals measured under dark (yellow dots) and under white LED illumi-
+nation of 34 W m– 2 (orange dots) in forward scan regime only with low
+v o l t a g es c a nr a t eo f1 m V s– 1. Raw and average data plots are shown in
+Supplementary Information (see Supplementary Figs. S17, S18). Previous
+research suggests53– 55 that ion migration plays an important role in the
+hysteresis effect and shape ofJ-V curves. Hence, we carried out an extensive
+analysis to determine the mobilities and ion concentrations in our halide
+perovskite single crystals (for furt her information see Supplementary
+Fig. S16). Based on the analysis and comparison with DD simulation model
+we decided to proceed using simpliﬁed Eq. (3) to model the measured J-V
+curves (see Fig. 2 and Supplementary Figs. S17, S18).
+To gain a better understanding of the current-voltage characteristics,
+we introduced the injection (solid line red) and, and the opposite, extraction
+model (dashed red line). The current density and voltage are plotted on a
+logarithmic scale. A detailed explanation of the applied models is presented
+in Supplementary Figs. S6, S7. The other two lines (i) dashed black line and
+(ii) solid black line correspond with the ohmic region (m = 1) and quadratic
+region (m =2 ) ,r e s p e c t i v e l y .
+Both characteristics exhibit noise for small voltage (ohmic region) and
+a clear change after illumination. In the case of MAPbBr3 the illumination
+causes 1 order of magnitude increase in photocurrent in the ohmic region,
+while the TFL regions exhibit little to no difference. The transition between
+ohmic and TFL region occurs at 0.5 V, followed by the transition from TFL
+to quadratic region at around 3 V. Th e dark and light current-voltage
+characteristics follow the proposed injection model, with no indication of
+the barrier behavior. However, both curves enter Mott– Gurney region at
+10 V and 9 V, respectively. On the contrary, dark and light current voltage
+characteristics of MAPbI3 differ in the measured range. The darkJ-V clearly
+shows the barrier behavior (i.e. follows the extraction model), while the light
+J-V follows the injection model with two transitions: (i) ohmic to TFL at
+0 . 5Va n d( i i )T F Lt oq u a d r a t i cr e g i on at 3 V. This curve enters the Mott-
+Gurney region at ~10 V. Moreover, the current passing through the MAPbI3
+https://doi.org/10.1038/s42005-025-02202-1 Article
+Communications Physics |           (2025) 8:280 2
+
+PAGE 3
+single crystal increases by about 1.5 orders of magnitude after illumination.
+The conductivity (σ) of both materials was determined from Ohmic regions
+of darkJ-V curves using the following formulaσ ¼ L
+AR ,w h e r eL is the crystal
+thickness,A i st h ea c t i v ea r e a( S u p p l e m e n t a r yT a b l eS 1 ) ,R is the resistance.
+The conductivity of MAPbBr3 was calculated to be (3.9 ± 0.6) × 10– 11 Sc m– 1,
+while that of MAPbI3 was found to be (2.6 ± 0.4) × 10– 10 Sc m– 1.
+To the best of our knowledge, the previously reported
+models44– 49 apply the tangent ﬁts to the de ﬁned regions (ohmic, TFL
+and Mott – Gurney) in dark current-voltage characteristics and
+determine the parameters such as VTFL, concentrations of trapped
+charge carriers ( pt or nt), and their mobilities ( μp and μn). However,
+the information about the energy distribution and voltage depen-
+dance of the determined paramete rs remains unclear. In addition,
+the localization of the trap state is u sually missing, which might raise
+the question whether the simple ﬁt by tangent is suf ﬁcient to describe
+these materials. Especially if we take into account that the trap
+state can cause the quadratic slope in J-V characteristics, same as the
+Mott– Gurney region (see Model Sim ulations in Supplementary
+Information). Hence, we developed the advanced space charge lim-
+ited current model (A-SCLC) to investigate the electrical properties
+of halide perovskite materials. The model itself is a successor of
+temperature-modulated SCLC model 60– 64, previously published by
+our group and it can be applied not only to perovskites but to other
+semiconductor materials as well.
+Determination of the charge carrier mobilities and
+concentrations
+To determine the key parameters of semiconductor materials one must take
+into account the band diagram of the studied material and the contacts, as
+s h o w ni nF i g .1 and Supplementary Fig. S6. With that being said, we
+developed a model consisting of two square root transport bands (con-
+duction and valence band) and one monoenergetic trap state. Practically, the
+proposed model variates withﬁve parameters: (i) microscopic mobilityμ0,
+(ii) density of the trap statesNt, (iii) energy position of the trap stateEt,( i v )
+trap temperatureTt, and (v) thermodynamic Fermi level positionEF0 to ﬁt
+the J-V characteristics and simultaneously ﬁt the calculated parameters
+(effective mobility, concentration of free and trapped charge carriers, Fermi
+level shift, and parameter theta). A detailed description of the model used is
+described in Supplementary Note 1. Supplementary Table S2 presents all
+parameters used to build the model, while Supplementary Fig. S7 represents
+a scheme used to calculate and model the studied parameters (for better
+understanding, a guide to data analysis and modeling is also included and
+explained in Supplementary Note 2).
+The ﬁrst of the calculated parameters, the effective mobility58,62,65 of the
+charge carriers, can be derived from Eq. (2)
+μeff ¼ μ0Θ ¼ L3
+ε0εrð1 /C0 γÞð2 /C0 γÞ2
+J
+V2 ð4Þ
+Fig. 1 | Graphical illustration of band diagrams under various measurement
+conditions. Band diagrams of a Carbon/MAPbBr3/Carbon and b Carbon/MAPbI3/
+Carbon devices before and after contact (at 0 V and in forward regime). The dia-
+grams consist of several energies: valence band energy (Ev), conduction band energy
+(Ec), energy of trap state ( Et), thermodynamic Fermi level ( EF0). The positions of
+valence band energy (Ev,dark and Ev,light), conduction band energy (Ec,dark and Ec,light)
+and Fermi level ( EF0,dark and EF0,light) in dark and under illumination are clearly
+indicated.
+https://doi.org/10.1038/s42005-025-02202-1 Article
+Communications Physics |           (2025) 8:280 3
+
+PAGE 4
+Essentially, the microscopic mobility (μ0) is the limiting case of effective
+mobility (μeff), which occurs when parameterΘ equals one (e.g. ohmic and
+Mott-Gurney regions). However, the trap states lower the effective mobility
+and thereby the magnitude of SCLC (Θ ≤ 1). Hence, to precisely determine
+the mobility, it is necessary to either measureJ-V curves up to Mott-Gurney
+region, or to develop a model that can estimate at which voltage the device
+enters this region of current-voltage characteristics and then calculate the
+semiconductor’s properties.
+Figure 3 shows the dependence of effective mobility on the applied
+voltage under dark and light measurement conditions (experimental data),
+their models (solid red curves) and estimated microscopic mobility values
+(dashed lines). Interestingly, both dark and light effective mobility of
+MAPbBr3 approaches the M-G region (i.e. effective mobility approaches the
+microscopic mobility), while in the case of MAPbI3 only the lightμeff follows
+the same trend. The darkμeff decreases with increasing voltage, reﬂecting the
+barrier behavior previously seen in the c urrent-voltage characteristics. In
+Fig. 2 | J-V curves under various experimental conditions. Experimental data and
+estimated models of current-voltage characteristics for a MAPbBr3 and b MAPbI3
+perovskite single crystals in the dark (Jdark) and under illumination (Jlight) ﬁtted using
+injection and extraction model. Black dashed and solid lines represent linear and
+quadratic slopes ( m)o f J-V characteristics.
+Fig. 3 | Tracking the change of effective mobility under applied bias voltage.
+Effective mobility ( μeff)o f a MAPbBr3 and b MAPbI3 perovskite single crystals, in
+the dark ( μeff,dark) and under illumination ( μeff,light). Red and black dashed lines
+represent estimated microscopic mobilities (μ0,dark and μ0,light), while red solid lines
+represent models of effective mobility ( μeff,m).
+https://doi.org/10.1038/s42005-025-02202-1 Article
+Communications Physics |           (2025) 8:280 4
+
+PAGE 5
+our case, the microscopic mobility of MAPbI 3 under dark can be deter-
+mined only from ohmic region. We note that such behavior was previously
+measured in MAPbI 3-based hole-only devices 48. Estimated microscopic
+mobilities for both single crystals are presented in Table 1.T h ev o l t a g e
+dependence of Θ is shown in Supplementary Fig. S19.
+Once microscopic mobility is estimated, we can calculate the con-
+centration of free and trapped charge carriers (in our case holes),pf and pt
+using following relations
+pf ¼ LJ
+eμ0 ð2/C0 γÞ V ð5Þ
+pt ¼ ε0εrð1 /C0 γÞð2 /C0 γÞ V
+eL 2 ð6Þ
+Figure 4a, b shows voltage dependences of experimental pf and pt
+and their models for two studied crystals MAPbBr 3 and MAPbI 3,
+respectively. As evident, the illuminated MAPbBr3 single crystal exhibits
+an increase of free carriers in ohmic region, while MAPbI 3 exhibits an
+increase in free charge carriers over the entire measurement range. These
+ﬁndings correlate with the J-V curves (Fig. 1). Moreover, the con-
+centration of trapped charge carriers can also be plotted as a function of
+free charge carrier concentration and Fermi level (top and bottom axis in
+Fig. 4c, d). The model concentrations of free and trapped charge carriers
+were plotted for holes (solid ptm and dashed pfm red lines indicating
+positive charge) and for electrons (solid ntm and dashed nfm blue lines
+indicating negative charge). This representation of the modeled and
+calculated concentration gives a deeper understanding of the charge
+carrier transport mechanisms. Firstly, note that in the case of MAPbBr 3,
+the concentration of trapped charge follows the model of hole carriers
+(red line), while in MAPbI 3 only the points calculated from light J-V
+characteristics do so. This trend responds with injection behavior (i.e.
+ohmic and TFL region transition). A detailed explanation regarding the
+different regions of the J-V curves and their correlation with the pt (pf)
+and nt (nf) functions is shown in the model simulation (see
+Supplementary Fig. S15). In addition, the saturated value of pt (see
+Fig. 4c, d), that is the total concentration of trapped charge carriers,
+increases from 7.58 × 10 9 cm– 3 (under dark) to 8.84 × 10 9 cm– 3 (after
+illumination) for MAPbBr3. In the case of MAPbI 3 we notice a different
+behavior under dark. Trapped charge carriers follow the trend of nt
+instead of pt. This could be related to a blocking mechanism at the
+injection contact causing extraction dominance and sudden decrease of
+free charge carriers (see Fig. 4d and Supplementary Fig. S22b, c). How-
+ever, there is a change in concentration of trapped charge carriers from
+1.15 × 1010 cm– 3 under dark to 8.63 × 10 9 cm– 3 after illumination.
+Another interesting situation occurs at the point where concentration
+of trapped holes equals the concentration of free holes,pt /C25 pf .G i v e nt h a t
+in this situation Θ ¼ pf =ps ¼ pf =ðpt þ pf Þ,w ec a nd e d u c et h a t
+μeff ¼ μ0Θ ¼ μ0=2. Using the proposed model one can precisely determine
+where this situation occurs and tes t the modeling of the microscopic
+mobility.
+Determination of quasi-Fermi level position
+Fermi level position is another parameter that could be ﬁtted using the
+A-SCLC model. To determine the position of the Fermi level, we must use
+the following equation
+pf ¼ Nv e
+/C0 ΔEF
+kB T
+/C16/C17
+ð7Þ
+where Nv is the concentration of delocalized states in the valence band and
+ΔEF is the Fermi level shift ( ΔEF ¼ EF /C0 Ev) relative to the position of
+valence band (as shown in Fig. 1). Figure 5a, b shows calculated dark and
+light Fermi level positions as well as the corresponding model curves for
+MAPbBr3 and MAPbI3. Again, we notice different trends in two-measured
+single crystals. Light and dark quasi-Fermi level of MAPbBr3 m o v e sc l o s e rt o
+transport band with increasing voltage, which agrees with proposed
+injection mechanism and increase of the pf. On the contrary, dark quasi-
+Fermi level of MAPbI3 single crystal moves farther away from the transport
+band up to approx. 2 V, after which the Fermi level shows the opposite trend.
+This supports our earlier statement that the presence of injection barrier
+leads to dominance of extraction mechanisms and decrease of free charge
+carriers (see Fig.4b).
+However, the injection barrier is removed either with higher voltage
+(>2 V) or by illumination, as shown in Fig.4b and Supplementary Fig. S23.
+Expectedly, we noticed a shift of thermodynamic Fermi levelEF0 (EF at 0 V)
+after illumination in both measured single crystals: from – 4.828 eV to
+– 4.874 eV (ΔEF0 = 0.046 eV) in MAPbBr3 and from– 4.740 eV to– 4.746 eV
+(ΔEF0 = 0.006 eV) in MAPbI3.
+Energy distributions of the studied parameters
+Energy distributions of calculatedpt, pf and model curvesptm, pfm (ntm, nfm)
+give in-depth information about the charge transport processes inside of the
+semiconductor’s bandgap. Firstly, about the tendency of the carriers to move
+closer or further away from the tra nsport band, and secondly about the
+quantity of the trapped (free) charge carrier concentrations. The model itself
+consists of two square root (approximately monoenergetic) transport bands
+(valence and conduction band) and one bi-exponential (approximately
+monoenergetic) trap states. All states are described with function g(E),
+presented with a green dashed line in Fig. 6. Previous reports suggest that
+halide perovskite materials have signiﬁcant defect tolerance10,14– 28.N e v e r -
+theless, the trap states inﬂuence the charge transport and thus they cannot be
+neglected in the SCLC model. The effect of trap position and trap tem-
+perature on theptm and nfm is presented in the Model Simulation section of
+Supplementary Information. As can be seen from this section, trap tem-
+perature does not signiﬁcantly affect ptm and pfm for temperatures lower
+than the temperature of the experimentT (K), whereEF0 ≈ Et. However, the
+position of thermodynamic Fermi level has the highest impact on the shape
+of ptm and ntm. Supplementary Fig. S8 shows three possible positions of
+the thermodynamic Fermi level relative to the trap position: (i)EF0 closer to
+Table 1 | Summarized parameters for MAPbBr 3 and MAPbI3
+single crystals
+MAPbBr3 MAPbI3
+Ec (eV) – 3.36 – 3.93
+Ev (eV) – 5.58 – 5.43
+EF0,intrinsic (eV) – 4.47 – 4.68
+Eg (eV) 2.20 1.50
+Nt, dark (cm– 3) 3.03 × 10 10 4.60 × 1010
+Nt, light (cm– 3) 3.54 × 10 10 3.45 × 1010
+Et (eV) – 4.768 – 4.715
+Tt, dark (K) 8 40
+Tt, light (K) 40 95
+EF0,dark (eV) – 4.828 – 4.740
+EF0,light (eV) – 4.874 – 4.746
+ΔEF0 (eV) 0.046 0.006
+μ0,dark (cm2V– 1s– 1)5 0 9 0
+μ0,light (cm2V– 1s– 1) 160 230
+μ0,light /μ0,dark 3.2 2.5
+pt,dark (cm– 3) 7.58 × 10 9 1.15 × 1010
+pt,light (cm– 3) 8.84 × 10 9 8.63 × 109
+nions (cm– 3) 1.65 × 10 9 4.52 × 107
+μions (cm2V– 1s– 1) 4.25 × 10 – 5 1.39 × 10– 7
+T (K) 300
+https://doi.org/10.1038/s42005-025-02202-1 Article
+Communications Physics |           (2025) 8:280 5
+
+PAGE 6
+Fig. 5 | Effect of applied bias voltage on Fermi level position. Voltage dependence
+of Fermi level of a MAPbBr3 and b MAPbI3, in the dark ( EF,dark) and under illu-
+mination (EF,light). The solid red line represents model of Fermi level energy
+(EF,m). The thermodynamic Fermi level positions in the dark ( EF0,dark) and under
+illumination (EF0,light) are indicated by black arrows.
+Fig. 4 | Change of carrier concentrations and their mapping using A-SCLC
+model. Voltage dependence of free ( pf) and trapped ( pt) charge carriers for
+a MAPbBr3 and b MAPbI3 and energy dependances of pf and pt for c MAPbBr3 and
+d MAPbI3. The solid blue and red lines represent model curves ( ntm and ptm)o f
+trapped charge carriers. Red dashed line represents model curve of free charge
+carriers (pfm).
+https://doi.org/10.1038/s42005-025-02202-1 Article
+Communications Physics |           (2025) 8:280 6
+
+PAGE 7
+the conduction band, (ii) EF0 in the position of the trap state, and (iii) EF0
+closer to the valence band. Furthermore, the proposed A-SCLC model can
+distinguish minor changes in the concentration of trapped charge carriers
+and free carriers in the bandgap of semiconductor materials. The traditional
+SCLC models (tangent ﬁto f J-V regions) usually do not interpret these
+changes.
+It our case, both MAPbBr3 and MAPbI3-based devices have thermo-
+dynamic Fermi level position closer to the valence band,EF0 < Et (i.e. deep
+trap state for holes, see Table1). Figure6 shows the discussed trends of hole
+concentrations in the wider energy ra nge. In addition, the increment of
+charge carrier concentration (dpt/dE) is plotted to better demonstrate the
+increase/decrease of the trapped holes. The effect of temperature on ptm
+(ntm)a n ddptm/dE is simulated in Supplementary Figs. S10, S11.
+Figure 6 also reveals the change of the free and trapped holes in the
+bandgap of the two studied halide pe rovskite materials. As mentioned
+above, the trapped holes in MAPbBr 3 follow the ptm, which corresponds
+with injection mechanism in C/MAPbBr3/C (Figs. 4a, c and 6a, c) both
+under dark and after illumination (i.e.pt increases with increasing voltage
+and ptm ﬁts pt). On the contrary, the hole injection mechanism is negligible
+in C/MAPbI3/C device under the dark condition, and the hole extraction
+dominates, leading the deviceinto barrier-like mode (Fig.2b). As a result of
+that, we notice a low concentration of free charge carriers under dark
+(7 × 106 cm– 3), which stays almost constant up to 2.5 V (Fig. 4b, d). Under
+higher voltage, the hole injection surpasses the extraction, and thepf con-
+centration increases (the injection barrier is overcome). Figures4ba n d6d
+suggest that barrier can be overcome with illumination as well. Thus, after
+illumination we notice that the pt follows ptm and that concentration of pt
+signiﬁcantly increases after illumination. To get a better understanding of
+illumination effect on MAPbBr3 and MAPbI3 we compared all parameters
+determined by the A-SCLC model in Table1.
+The described model is applicable not only to halide perovskites but to
+other semiconductor materials as well. Nevertheless, there are certain cri-
+teria that must be considered before evaluating the measured current-
+voltage characteristics. Firstly, the mapping of trap state is possible only for
+lower temperatures (see SupplementaryF i g .S 1 0 ) .I ft e m p e r a t u r e ss u r p a s s
+the critical temperature, the trap is not visible in theptm and ntm.S e c o n d l y ,i n
+materials such as halide perovskites, where diffusion of ions, polarization
+effects, reactions between ions and electrodes, inﬂuence the J-V curves, the
+measurements have to be carried out in steady state regime. In addition, it is
+noteworthy to mention that 2-electrode con ﬁguration can suffer from
+surface current. Thus, we recommend others to use ring-guard electrode
+conﬁguration, described by Almora et al. 66 prior to application of our
+A-SCLC model.
+Conclusions
+Herein, we report a comprehensive analysis of the current-voltage char-
+acteristics of two commonly studied pe rovskite materials: methylammo-
+nium lead bromide (MAPbBr 3) and methylammonium lead iodide
+(MAPbI3) single crystals. Using advanced space charge limited current
+(A-SCLC) model we determined the key semiconductor properties
+(microscopic mobility, thermodynamic Fermi level, trap position and
+concentration of majority charge carriers) in two carbon/perovskite/carbon
+devices under dark and after white LED illumination (all results are sum-
+marized in Table1). Two different behaviors can be seen from the measured
+and modeled parameters. The C/MAPbBr3/C device showed clear injection
+properties, where the concentration of free and trapped holes (i.e. majority
+Fig. 6 | A-SCLC bandgap maps. Energy distribution of density of states g(E) model
+(green dashed lines), modeled ptm (pfm) and ntm (nfm) curves (red and blue lines), the
+concentration increment dptm/dE (dashed pink lines) and experimental data points
+pt and pf plotted for light ( a, b) and dark ( c, d) measurements performed on
+MAPbBr3 and MAPbI3, respectively. The trap state (Et) position (green dashed line)
+and the Fermi level ( EF0) position (dashed black line) are clearly indicated.
+https://doi.org/10.1038/s42005-025-02202-1 Article
+Communications Physics |           (2025) 8:280 7
+
+PAGE 8
+charge carriers) increased after applied bias voltage, both under dark and
+after illumination. On the contrary, C/MAPbI 3/C showed presence of
+injection barrier that altered the shape of the J-V curve under dark mea-
+surement conditions. This could be caused by interface defects or by self-
+doping of MAPbI 3 due to the presence of intri nsic defect state (i.e. ion
+vacancies, interstitials etc.)67. As shown in our results, the injection barrier
+can be overcome with higher voltage (>2 V) and after illumination. The
+proposed advanced- SCLC model presented in this work is a guide for
+detailed analysis of current-voltage characteristics, applicable to a broad
+range of semiconductor materials.
+Methods
+Chemicals and reagents
+Methylammonium bromide (6876-37-5, ≥99%, CH 3NH3Br, MABr),
+methylammonium iodide (14965-49-2,≥99%, CH3NH3I, MAI), lead (II)
+bromide (10031-22-8, 99% PbBr2), lead (II) iodide (10101-63-0, 99% PbI2),
+N,N-dimethylformamide (68-12-2, 99% DMF), γ-butyrolactone (96-48-0,
+99% GBL), and propylene carbonate (108-32-7, 99% PC) were purchased
+from Merck (Sigma-Aldrich). All chemicals were used as received without
+further puriﬁcation.
+Preparation of the MAPbBr3 and MAPbI3 single crystals
+Organometal halide perovskite single crystals (MAPbBr 3 and MAPbI3)
+were synthesized using inverse temperature crystallization (ITC) method.
+Firstly, the equimolar ratios of perovskite precursors MABr (MAI) and
+PbBr2 (PbI2) were dissolved in polar aproticsolvents: bromides in DMF and
+iodides in GBL/PC (65%:35% v/v). As prepared, 1 ml perovskite solutions
+were then stirred for 3 h at 25 °C; subsequently, they wereﬁltered using 0.45
+μmp o l y t e t r aﬂuoroethylene (PTFE) ﬁlters. Those solutions were later
+poured in 4 ml vials and placed into silicon oil bath to ensure the uniform
+temperature distribution. The whole set-up was then placed onto the
+SuperNuova+ (Thermo Scientiﬁc™) hotplate with PT1000 temperature
+probe and heated from 25 °C to 80 °C. As a result, the desired millimeter
+sized, MAPbBr3 and MAPbI3 single crystals were obtained (see Supple-
+mentary Figs. S1, S2).
+Structural characterization
+The crystalline structure of the prepared samples was determined using an
+X-ray diffractometer (XRD) equipped with the Cu K α X-ray tubes. The
+single crystal X-ray diffraction (SC-XRD) measurements were performed
+on an XtaLAB Synergy-I diffractometer with a HyPix3000 hybrid pixel array
+detector and microfocused PhotonJet-I X-ray source (Cu K α). The data
+integration was done using CrysAlisPro 1.171.40.82a software. The XRD
+patterns for MAPbBr3 and MAPbI3 single crystals are shown in Supple-
+mentary Fig. S3.
+Optical characterization
+Microscopic photos of the prepared single crystals were captured
+using a Hirox RH-2000 digital microscope. The UV-VIS absorbance
+spectra were recorded at room temperature using a Varian Cary 50
+UV-VIS Spectrophotometer operating in the 200 – 800 nm region with
+a step of 1 nm. Samples were excited by 380 nm nanosecond LED
+source from the front side at an angle of 45°. Absorption and pho-
+toluminescence spectra of the prepared materials are shown in
+Supplementary Fig. S4.
+Device fabrication
+C/MAPbBr3/C and C/MAPbI3/C devices were prepared by depositing the
+perovskite grade carbon paste (DM-CAP-4703S, Dycotec Materials) at the
+two opposite facets of the prepared bu lk single crystals as shown in Sup-
+plementary Fig. S5. Subsequently, the samples were encapsulated with
+Ossila epoxy resin to minimize the potential degradation due to the expo-
+sure to oxygen and moisture. This encapsulation was performed in a glo-
+vebox under an inert atmosphere (<1 ppm O2).
+A-SCLC measurements
+Advanced space charge limited current spectroscopy was performed using
+the Keithley Electrometer/High-resistance meter (model 6571B) at constant
+temperature (300 K) in vacuum/isolation chamber. The dark and light
+(34 W m– 2 white LED reﬂector LR4605.5dDG-WFL) current-voltage (J-V)
+characteristics were measured in forward scan only in sandwich con ﬁg-
+uration Carbon/Perovskite/Carbon (see Supplementary Fig. S5), with a
+v o l t a g es c a nr a t eo f1m Vs– 1. The temperature was regulated and measured
+using a Lauda ECO Silver RE 415 and a Digit NanoVolt/MicroOhm meter
+(Agilent 34420 A thermocouple type K).
+Impedance spectroscopy
+Analysis of ion mobilities and concentrations was performed using Solar-
+tron SI 1260 Impedance/Gain-Phase Analyzer with Solartron Dielectric
+Interface 1296. Measurements were carried out at ambient temperature
+under dark (at 0 V voltage bias and 3V-biased), see Supplementary Fig. S16.
+Data availability
+The data that support the ﬁndings of this study are available from the
+corresponding authors upon reasonable request.
+Received: 17 January 2025; Accepted: 23 June 2025;
+References
+1. Kojima, A., Teshima, K., Shirai, Y. & Miyasaka, T. Organometal halide
+perovskites as visible-light sensitizers for photovoltaic cells. J. Am.
+Chem. Soc. 131, 6050– 6051 (2009).
+2. Liang, Z. et al. Homogenizing out-of-plane cation composition in
+perovskite solar cells. Nature 624, 557– 563 (2023).
+3. De Wolf, S. et al. Organometallic halide perovskites: sharp optical
+absorption edge and its relation to photovoltaic performance.J. Phys.
+Chem. Lett. 5, 1035– 1039 (2014).
+4. Jiang, Y., Green, M. A., Sheng, R. & Ho-Baillie, A. Room temperature
+optical properties of organic – inorganic lead halide perovskites. Sol.
+Energy Mater. Sol. Cells 137, 253– 257 (2015).
+5. MENG, G. et al. Recent progress of halide perovskite radiation
+detector materials. J. Inorganic Mater. https://doi.org/10.15541/
+jim20190394 (2020).
+6. Sutton, R. J. et al. Bandgap-tunable cesium lead halide perovskites
+with high thermal stability for efﬁcient solar cells.Adv. Energy Mater.6,
+1502458 (2016)
+7. Kulkarni, S. A. et al. Band-gap tuning of lead halide perovskites using a
+sequential deposition process.J. Mater. Chem. A 2,9 2 2 1–9225 (2014).
+8. Gao, H. et al. Bandgap engineering of single-crystalline perovskite
+arrays for high-performance photodetectors. Adv. Functional Mater.
+28, https://doi.org/10.1002/adfm.201804349 (2018).
+9. Wehrenfennig, C., Liu, M., Snaith, H. J., Johnston, M. B. & Herz, L. M.
+Homogeneous emission line broadening in the organo lead halide
+perovskite CH3NH3PbI3– xClx. J. Phys. Chem. Lett. 5, 1300– 1306
+(2014).
+10. Xing, G. et al. Long-range balanced electron- and hole-transport lengths
+in organic-inorganic CH3NH3PbI3. Science 342,3 4 4–347 (2013).
+11. Herz, L. M. Charge-carrier mobilities in metal halide perovskites:
+fundamental mechanisms and limits. ACS Energy Lett. 2, 1539– 1548
+(2017).
+12. Lim, J. et al. Elucidating the long-range charge carrier mobility in metal
+halide perovskite thin ﬁlms. Energy Environ. Sci. 12, 169– 176 (2019).
+13. Iftikhar, F. J. et al. Structural and optoelectronic properties of hybrid
+halide perovskites for solar cells. Org. Electronics 91, https://doi.org/
+10.1016/j.orgel.2021.106077 (2021).
+14. Liu, Y. et al. Ligand assisted growth of perovskite single crystals with
+low defect density. Nat. Commun. 12, https://doi.org/10.1038/
+s41467-021-21934-6 (2021).
+https://doi.org/10.1038/s42005-025-02202-1 Article
+Communications Physics |           (2025) 8:280 8
+
+PAGE 9
+15. Feng, Y. et al. Low defects density CsPbBr 3 single crystals grown by
+an additive assisted method for gamma-ray detection. J. Mater.
+Chem. C. 8, 11360– 11368 (2020).
+16. Xia, J., Sohail, M. & Nazeeruddin, M. K. Ef ﬁcient and stable perovskite
+solar cells by tailoring of interfaces.Adv. Mater. 35, https://doi.org/10.
+1002/adma.202211324 (2023).
+17. Lee, D.-K. & Park, N.-G. Additive engineering for highly ef ﬁcient and
+stable perovskite solar cells. Appl. Phys. Rev. 10, https://doi.org/10.
+1063/5.0097704 (2023).
+18. Zhang, Z. et al. Suppression of phase segregation in wide-bandgap
+perovskites with thiocyanate ions for perovskite/organic tandems
+with 25.06% efﬁciency. Nat. Energy https://doi.org/10.1038/s41560-
+024-01491-0.
+19. Gaonkar, H. et al. Thermally stable, ef ﬁcient, vapor deposited
+inorganic perovskite solar cells. ACS Appl. Energy Mater. 3,
+3497– 3503 (2020).
+20. Jo št, M., Kegelmann, L., Korte, L. & Albrecht, S. Monolithic perovskite
+tandem solar cells: a review of the present status and advanced
+characterization methods toward 30% efﬁciency. Adv. Energy Mater.
+10, https://doi.org/10.1002/aenm.201904102 (2020).
+21. Chen, M. et al. High-ef ﬁciency lead-free wide band gap perovskite
+solar cells via guanidinium bromide incorporation. ACS Appl. Energy
+Mater. 4, 5615– 5624 (2021).
+22. Ma, Y., Zhao, X., Xu, X., Wei, W. & Shen, L. Ultralow dark current and
+high on– off ratio of perovskite photodetectors enabled by 3D/2D/3D
+heterostructures unipolar barrier. Appl. Phys. Lett. 123, https://doi.
+org/10.1063/5.0179174 (2023).
+23. Liu, D. et al. Metal halide perovskite nanocrystals: application in high-
+performance photodetectors. Mater. Adv. 2, 856– 879 (2021).
+24. Feng, X. et al. Spray-coated perovskite hemispherical photodetector
+featuring narrow-band and wide-angle imaging. Nat. Commun. 13,
+https://doi.org/10.1038/s41467-022-33934-1 (2022).
+25. Song, J., Zhou, Y., Padture, N. P. & Huey, B. D. Anomalous 3D
+nanoscale photoconduction in hybrid perovskite semiconductors
+revealed by tomographic atomic force microscopy.Nat. Commun. 11,
+https://doi.org/10.1038/s41467-020-17012-y (2020) .
+26. Lee, K. J. et al. Gigantic suppression of recombination rate in 3D lead-
+halide perovskites for enhanced photodetector performance. Nat.
+Photonics 17, 236– 243 (2023).
+27. She, X.-J. et al. A solvent-based surface cleaning and passivation
+technique for suppressing ionic defects in high-mobility perovskite
+ﬁeld-effect transistors. Nat. Electron. 3, 694– 703 (2020).
+28. Matsushima, T. et al. Large metal halide perovskite crystals for ﬁeld-
+effect transistor applications.Appl. Phys. Lett.115, https://doi.org/10.
+1063/1.5116411 (2019).
+29. Sulaman, M. et al. Hybrid nanocomposites of all-inorganic halide
+perovskites with polymers for high-performance ﬁeld-effect-
+transistor-based photodetectors: an experimental and simulation
+Study. Adv. Mater. Interfaces 9, https://doi.org/10.1002/admi.
+202200017 (2022).
+30. Pininti, A. R., Ball, J. M., Albaqami, M. D., Petrozza, A. & Caironi, M.
+Time-dependent ﬁeld effect in three-dimensional lead-halide
+perovskite semiconductor thin ﬁlms. ACS Appl. Energy Mater. 4,
+10603– 10609 (2021).
+31. Yang, D. et al. Germanium-lead perovskite light-emitting diodes. Nat.
+Commun. 12, https://doi.org/10.1038/s41467-021-24616-5 (2021).
+32. Liu, X.-K. et al. Metal halide perovskites for light-emitting diodes. Nat.
+Mater. 20,1 0– 21 (2021).
+33. Yin, W. et al. Multidentate ligand polyethylenimine enables bright
+color-saturated blue light-emitting diodes based on CsPbBr 3
+nanoplatelets. ACS Energy Lett. 6, 477– 484 (2021).
+34. Liu, H. et al. Ef ﬁcient and stable blue light emitting diodes based on
+CsPbBr3 nanoplatelets with surface passivation by a multifunctional
+organic sulfate. Adv. Energy Mater.13, https://doi.org/10.1002/aenm.
+202201605 (2023).
+35. John, R. A. et al. Recon ﬁgurable halide perovskite nanocrystal
+memristors for neuromorphic computing. Nat. Commun. 13, https://
+doi.org/10.1038/s41467-022-29727-1 (2022).
+36. Berruet, M. et al. Physical model for the current – voltage hysteresis
+and impedance of halide perovskite memristors. ACS Energy Lett. 7,
+1214– 1222 (2022).
+37. Zhang, N. et al. All-optical control of lead halide perovskite
+microlasers. Nat. Commun. 10, https://doi.org/10.1038/s41467-019-
+09876-6 (2019).
+38. Guo, P. et al. Laser-generated nanocrystals in perovskite: universal
+embedding of ligand-free and sub-10 nm nanocrystals in solution-
+processed metal halide perovskite ﬁlms for effectively modulated
+optoelectronic performance. Adv. Energy Mater.9, https://doi.org/10.
+1002/aenm.201901341 (2019).
+39. Qin, C. et al. Stable room-temperature continuous-wave lasing in
+quasi-2D perovskite ﬁlms. Nature 585,5 3– 57 (2020).
+40. Guo, J. et al. Ultrashort laser pulse doubling by metal-halide
+perovskite multiple quantum wells. Nat. Commun. 11, https://doi.org/
+10.1038/s41467-020-17096-6 (2020).
+41. Knop, O., Wasylishen, R. E., White, M. A., Cameron, T. S. & Oort, M. J.
+M. V. Alkylammonium lead halides. Part 2. CH3NH3PbX3 (X = Cl, Br, I)
+perovskites: cuboctahedral halide cages with isotropic cation
+reorientation. Can. J. Chem. 68, 412– 422 (1990).
+42. Zhou, Z., Pang, S., Liu, Z., Xu, H. & Cui, G. Interface engineering for
+high-performance perovskite hybrid solar cells. J. Mater. Chem. A 3,
+19205– 19217 (2015).
+43. Rao, H. -S., Li, W. -G., Chen, B. -X., Kuang, D. -B. & Su, C. -Y. In situ
+growth of 120 cm2 CH3NH3PbBr3 perovskite crystal ﬁlm on FTO glass
+for narrowband-photodetectors. Adv. Mater. 29, https://doi.org/10.
+1002/adma.201602639 (2017).
+44. Liu, Y. et al. A 1300 mm 2 ultrahigh-performance digital imaging
+assembly using high-quality perovskite single crystals. Adv. Mater.
+30, https://doi.org/10.1002/adma.201707314 (2018).
+45. Saidaminov, M. I. et al. Planar-integrated single-crystalline perovskite
+photodetectors.Nat. Commun.6, https://doi.org/10.1038/ncomms9724
+(2015).
+46. Shi, D. et al. Low trap-state density and long carrier diffusion in
+organolead trihalide perovskite single crystals. Science 347, 519– 522
+(2015).
+47. Saidaminov, M. I. et al. High-quality bulk hybrid perovskite single
+crystals within minutes by inverse temperature crystallization. Nat.
+Commun. 6, https://doi.org/10.1038/ncomms8586 (2015).
+48. Dong, Q. et al. Electron-hole diffusion lengths 175 μm in solution-
+grown CH3NH3PbI3 Single Crystals. Science 347, 967– 970 (2015).
+49. Huang, Y. et al. A-site cation engineering for highly ef ﬁcient MAPbI3
+single-crystal X-ray detector.Angew. Chem. Int. Ed.58, 17834– 17842
+(2019).
+50. Almora, O. et al. Capacitive dark currents, hysteresis, and electrode
+polarization in lead halide perovskite solar cells. J. Phys. Chem. Lett.
+6, 1645– 1652 (2015).
+51. McGovern, L., Futscher, M. H., Muscarella, L. A. & Ehrler, B.
+Understanding the stability of MAPbBr3 versus MAPbI3: suppression
+of methylammonium migration and reduction of halide migration. J.
+Phys. Chem. Lett. 11, 7127– 7132 (2020).
+52. Futscher, M. H. et al. Quanti ﬁcation of ion migration in CH3NH3PbI3
+perovskite solar cells by transient capacitance measurements.Mater.
+Horiz. 6, 1497– 1503 (2019).
+53. Duijnstee, E. A. et al. Toward understanding space-charge limited
+current measurements on metal halide perovskites. ACS Energy Lett.
+5, 376– 384 (2020).
+54. Le Corre, V. M. et al. Revealing charge carrier mobility and defect
+densities in metal halide perovskites via space-charge-limited current
+measurements. ACS Energy Lett. 6, 1087– 1094 (2021).
+55. Sajedi Alvar, M., Blom, P. W. M. & Wetzelaer, G.-J. A. H. Space-
+charge-limited electron and hole currents in hybrid organic-inorganic
+https://doi.org/10.1038/s42005-025-02202-1 Article
+Communications Physics |           (2025) 8:280 9
+
+PAGE 10
+perovskites. Nat. Commun. 11, https://doi.org/10.1038/s41467-020-
+17868-0 (2020).
+56. Rose, A. Space-charge-limited currents in solids. Phys. Rev. 97,
+1538– 1544 (1955).
+57. Rose, A. & Lampert, M. A. Photoconductor performance, space-
+charge currents, and the steady-state fermi level. Phys. Rev. 113,
+1227– 1235 (1959).
+58. Stöckmann, F. An exact evaluation of steady-state space-charge-
+limited currents for arbitrary trap distributions. Phys. Status Solidi 64,
+475– 483 (1981).
+59. Tan, S. et al. Inorganic ammonium halide additive strategy for highly
+efﬁcient and stable CsPbI 3 perovskite solar cells. Adv. Functional
+Mater. 31, https://doi.org/10.1002/adfm.202010813 (2021).
+60. Schauer, F., Nespurek, S. & Zmeskal, O. The bulk trap
+spectroscopy of solids by temperature-modulated space-charge-
+limited currents (TMSCLC): Application to real crystalline and
+amorphous semiconductors. J. Phys. C Solid State Phys. 19,
+7231– 7246 (1986).
+61. Zmeskal, O., Schauer, F. & Nespurek, S. The bulk trap spectroscopy
+of solids by temperature-modulated space-charge-limited currents
+(TMSCLC) in the steady state. J. Phys. C Solid State Phys. 18,
+1873– 1884 (1985).
+62. Ne špůrek, S., Zmeškal, O. & Sworakowski, J. Space-charge-limited
+currents in organic ﬁlms: some open problems. Thin Solid Films 516,
+8949– 8962 (2008).
+63. Pospisil, J. et al. Density of bulk trap states of hybrid lead halide
+perovskite single crystals: temperature modulated space-charge-
+limited-currents. Sci. Rep. 9, https://doi.org/10.1038/s41598-019-
+40139-y (2019).
+64. Zia, Q. et al. Impact of Low-Temperature Seed-Assisted Growth on
+the Structural and Optoelectronic Properties of MAPbBr 3 Single
+Crystals. Chem. Mater. 35, 5458– 5467 (2023).
+65. Robertson, J. H. Electrical transport in solids, with particular reference
+to organic semiconductors by K. C. Kao and W. Hwang. Acta
+Crystallogr. Sect. B Struct. Crystallogr. Cryst. Chem. 38, 350– 350
+(1982).
+66. Almora, O. et al. Surface versus bulk currents and ionic space-charge
+effects in CsPbBr 3 single crystals. J. Phys. Chem. Lett. 13,
+3824– 3830 (2022).
+67. Frolova, L. A., Dremova, N. N. & Troshin, P. A. The chemical origin of
+the p-type and n-type doping effects in the hybrid
+methylammonium– lead iodide (MAPbI3) perovskite solar cells. Chem.
+Commun. 51, 14917– 14920 (2015).
+Acknowledgements
+The authors acknowledge ﬁnancial support from the Grant Agency of the
+Czech Republic (GACR) through project No. 25-17500S as well as from
+project FCH-S-25-8836 funded by Brno University of Technology. Jan
+Pospisil further acknowledgesﬁnancial support from BUT Excellence
+Research Fund (VUT Excelence).
+Author contributions
+Stevan Gavranovic: writing– original draft, synthesis of single crystals,
+model simulations, optical characterization, data curation. Jan Pospisil:
+writing – review and editing, methodology, structural and electrical
+characterization, modeling of current-voltage characteristics. Oldrich
+Zmeskal: development of space charge limited current model, formal ana-
+lysis. Martin Weiter: supervision, conceptualization.
+Competing interests
+The authors declare that they have no known competingﬁnancial interests or
+personal relationships that could have appeared to inﬂuence the work
+reported in this paper. The funders had no role in the design of the study; in
+the collection, analysis, or interpretation of data; in the writing of the
+manuscript, or in the decision to publish the results.
+Additional information
+Supplementary informationThe online version contains
+supplementary material available at
+https://doi.org/10.1038/s42005-025-02202-1.
+Correspondenceand requests for materials should be addressed to
+Stevan Gavranovic or Jan Pospisil.
+Peer review information Communications Physicsthanks Vincent Le
+Corre, Atsushi Wakamiya and the other, anonymous, reviewer(s) for their
+contribution to the peer review of this work. A peer review ﬁle is available.
+Reprints and permissions informationis available at
+http://www.nature.com/reprints
+Publisher’s note Springer Nature remains neutral with regard to
+jurisdictional claims in published maps and institutional afﬁliations.
+Open Access This article is licensed under a Creative Commons
+Attribution-NonCommercial-NoDerivatives 4.0 International License,
+which permits any non-commercial use, sharing, distribution and
+reproduction in any medium or format, as long as you give appropriate
+credit to the original author(s) and the source, provide a link to the Creative
+Commons licence, and indicate if you modi ﬁed the licensed material. You
+do not have permission under this licence to share adapted material
+derived from this article or parts of it. The images or other third party
+material in this article are included in the article ’s Creative Commons
+licence, unless indicated otherwise in a credit line to the material. If material
+is not included in the article’s Creative Commons licence and your intended
+use is not permitted by statutory regulation or exceeds the permitted use,
+you will need to obtain permission directly from the copyright holder. To
+view a copy of this licence, visit http://creativecommons.org/licenses/by-
+nc-nd/4.0/.
+© The Author(s) 2025
+https://doi.org/10.1038/s42005-025-02202-1 Article
+Communications Physics |           (2025) 8:280 10

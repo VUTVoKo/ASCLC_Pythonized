@@ -11,3 +11,7 @@ __pycache__/
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Local inspection dependencies and notebook exports
+.local_packages/
+outputs/
