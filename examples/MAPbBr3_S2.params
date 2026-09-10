@@ -39,5 +39,7 @@ n_points = 501    # points in the E_F sweep
 # window and bin_size share one span of 5 consecutive measurements: the trailing
 # average and the local slope fit cover the same points. The trailing window
 # costs the last 4 rows, leaving 210 analysed rows of the 214 measured here.
+# window is workbook cell Data-calculations!I1 + 1; see docs/ASCLC_guide.md,
+# "Local-slope smoothing window".
 window   = 5      # points per local slope fit
 bin_size = 5      # average this many consecutive measured points

@@ -12,14 +12,12 @@ class Calculation:
     measurements: Measurements
     V: np.ndarray
     J: np.ndarray
-    T_K: np.ndarray
 
 
 def run_calculation(path, *, device):
     """Load the standard CSV and return measured voltage and current density.
 
     ``V = U + device['voltage_offset']`` and ``J = I / device['area']``.
-    Measured temperatures are returned separately in ``T_K`` (Celsius + 273.15).
     Signs, row order and nonfinite values are preserved; ``device`` is not mutated.
     """
     measurements = load_measurements(path)
@@ -27,7 +25,7 @@ def run_calculation(path, *, device):
         raise ValueError("Voltage offset must be finite.")
     v = measurements.U + device['voltage_offset']
     j = current_density(measurements.I, device['area'])
-    return Calculation(measurements, v, j, measurements.T + 273.15)
+    return Calculation(measurements, v, j)
 
 
 def export_results(result, figures, directory):
@@ -43,7 +41,7 @@ def export_results(result, figures, directory):
                            bbox_inches='tight')
     np.savetxt(directory / 'measured.csv',
                np.column_stack((result.measurements.U, result.measurements.I,
-                                result.measurements.T, result.V, result.J)),
+                                result.V, result.J)),
                delimiter=',', comments='',
-               header='U_V,I_A,T_C,V_V,J_Am2')
+               header='U_V,I_A,V_V,J_Am2')
     return directory

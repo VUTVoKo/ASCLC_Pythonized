@@ -1,5 +1,18 @@
 # Project instructions
 
+## Communication rules
+
+- Only write or change code when explicitly told to. By default, requests to
+  look at, explain, investigate, or discuss something call for an answer, not
+  an edit. Wait for an instruction to implement.
+- When the user tells you something that matters to the project beyond the
+  current chat (a decision, a constraint, a convention, a source of truth),
+  record it in the appropriate project file — this file, or a document under
+  `docs/`. Details that only concern the current conversation stay in the chat.
+- "Can you ..." is a real question about capability, not a rhetorical request
+  to do the thing. Answer whether it is possible and how; do not start doing it
+  unless separately asked.
+
 ## Parameters are user-controlled and must remain unchanged
 
 - Never change sample, material, device, model, fitting, or numerical parameters.
