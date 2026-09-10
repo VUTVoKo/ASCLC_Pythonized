@@ -36,5 +36,8 @@ E_F0 = -4.84    # eV
 [numerics]
 V_max    = 10.0
 n_points = 501    # points in the E_F sweep
-window   = 7      # points per local slope fit
-bin_size = 1      # average this many consecutive measured points
+# window and bin_size share one span of 5 consecutive measurements: the trailing
+# average and the local slope fit cover the same points. The trailing window
+# costs the last 4 rows, leaving 210 analysed rows of the 214 measured here.
+window   = 5      # points per local slope fit
+bin_size = 5      # average this many consecutive measured points

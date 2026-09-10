@@ -6,8 +6,9 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 
-# Excel lock files, created while a workbook is open
+# Spreadsheet lock files, created while a workbook is open locally
 ~$*
+.~lock.*#
 
 # Jupyter
 .ipynb_checkpoints/
