@@ -2,6 +2,10 @@
 
 ## Communication rules
 
+- Keep code, tests, notebook text, API names, and plot labels independent of
+  Excel/workbook terminology and file dependencies. Describe the mathematics
+  directly. Source comparisons and provenance belong under `docs/`.
+
 - Only write or change code when explicitly told to. By default, requests to
   look at, explain, investigate, or discuss something call for an answer, not
   an edit. Wait for an instruction to implement.
@@ -35,10 +39,11 @@
 - Build the calculation from the governing physical equations, with explicit
   assumptions, density definitions, units, signs, and boundary conditions.
   Document the derivation connecting those equations to the implemented steps.
-- The user's XLSX workbook is their independent validation tool. Do not read,
-  copy, reverse-engineer, or reproduce its formulas or cached results to build
-  or repair the script. Do not use exported example results as substitutes for
-  deriving the calculation either.
+- `data/SCLCKopecky.xlsx` is the user's workbook and may be read, quoted, and
+  reproduced. Treat it as a statement of intent, not as a derivation: a formula
+  or cached column from it says what the result should be, and the implementation
+  still has to follow from the governing equations. The same holds for exported
+  example results.
 - Use the supplied PDFs as scientific references, checking the original
   equations visually when extracted text is ambiguous. Resolve apparent
   contradictions through derivation and state any remaining uncertainty;

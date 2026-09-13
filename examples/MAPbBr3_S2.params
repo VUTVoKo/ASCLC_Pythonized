@@ -29,7 +29,6 @@ E_F0 = -4.84    # eV
 
 # Optional. Defaults follow the published equations; see docs/ASCLC_spec.md s7.
 [model]
-# trap_profile = si_biexponential   # prototype_sech | gaussian
 # gamma_model  = SI-M4              # Tt/T
 # theta_model  = absolute_over_total
 
