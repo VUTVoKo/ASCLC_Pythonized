@@ -8,6 +8,7 @@ returned by ``run_calculation`` and returns ``(figure, axes)``.
 """
 import matplotlib.pyplot as plt
 from matplotlib.ticker import LogFormatterSciNotation
+from matplotlib.transforms import Bbox
 import numpy as np
 
 from asclc_backend import (centered_mean, equal_density_voltage,
@@ -157,7 +158,7 @@ def plot_carrier_densities(carriers):
     return fig, ax
 
 
-def plot_carrier_fraction(carriers):
+def plot_carrier_fraction(carriers, *, model=None, model_current=None):
     """Parameter theta against voltage, the axes of Supplementary Fig. S19.
 
     ``Theta`` is the fraction of free charge in the total, equation (S12); under
@@ -169,17 +170,30 @@ def plot_carrier_fraction(carriers):
     values -- the rows where equation (6) turns negative -- stay in the data but
     cannot appear on a logarithmic axis.
     """
+    if (model is None) != (model_current is None):
+        raise ValueError('Supply both model occupations and model current.')
+    if model is not None and not np.array_equal(model.E_F, model_current.E_F):
+        raise ValueError('Model fractions and voltages must share the E_F sweep.')
     v, theta = np.asarray(carriers.U, float), np.asarray(carriers.theta, float)
-    ok = _finite_positive(v) & np.isfinite(theta)
+    ok = np.isfinite(v) & _finite_positive(theta)
     fig, ax = plt.subplots(figsize=_FIGSIZE)
     ax.set_yscale("log")
-    for level, name in ((1.0, r"$p_\mathrm{t} \ll p_\mathrm{f}$"),
-                        (0.5, r"$p_\mathrm{t} = p_\mathrm{f}$")):
+    references = ((1.0, r"$p_\mathrm{t} \ll p_\mathrm{f}$"),
+                  (0.5, r"$p_\mathrm{t} = p_\mathrm{f}$")) if model is None else ()
+    for level, name in references:
         ax.axhline(level, ls="--", lw=1.0, color="0.5")
         ax.annotate(name, (0.01, level), xycoords=("axes fraction", "data"),
                     va="bottom", fontsize="small", color="0.4")
-    ax.plot(v[ok], theta[ok], "o", ms=4, label=r"$\Theta$")
-    _style(ax, xlabel=_U_AXIS, ylabel=_THETA_AXIS)
+    ax.plot(np.where(ok, v, np.nan), np.where(ok, theta, np.nan),
+            "o", ms=4, label=r"$\Theta$")
+    if model is not None:
+        xlim, ylim = ax.get_xlim(), ax.get_ylim()
+        valid = np.isfinite(model_current.U_p) & _finite_positive(model.theta_p)
+        ax.plot(np.where(valid, model_current.U_p, np.nan),
+                np.where(valid, model.theta_p, np.nan), label=r'$\Theta_m$')
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
+    _style(ax, xlabel=_U_AXIS, ylabel=r'Theta, $\Theta$ (-)')
     return fig, ax
 
 
@@ -204,6 +218,62 @@ def plot_model_occupations(model):
     return fig, ax
 
 
+def plot_trapped_charge(carriers, model):
+    """Compare trapped and free populations on two independent axis pairs.
+
+    Primary coordinates are (p_f, p_t), (p_f, p_f), and their model
+    counterparts, including model (p_f, n_t). The secondary pair is
+    (n_f, p_f), with a reversed linear horizontal axis and its own log Y.
+    The retained top label is Energy, E_F, although its data are n_f.
+    No energy conversion is applied. Nonpositive log values leave gaps.
+    Limits follow measured p_t and p_f only; the top axis follows model
+    rows within that measured free-charge window.
+    """
+    fig, ax = plt.subplots(figsize=_FIGSIZE)
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    for x, y, label, style in (
+            (carriers.p_f, carriers.p_t, r'$p_t$ (m$^{-3}$)', 'o'),
+            (carriers.p_f, carriers.p_f, r'$p_f$ (m$^{-3}$)', 'o'),
+            (model.p_f, model.p_t, r'$p_{tm}$', '-'),
+            (model.p_f, model.p_f, r'$p_{fm}$', '-'),
+            (model.p_f, model.n_t, r'$n_{tm}$', '-')):
+        valid = _finite_positive(x, y)
+        ax.plot(np.where(valid, x, np.nan), np.where(valid, y, np.nan),
+                style, ms=4, label=label)
+        if len(ax.lines) == 2:
+            # Capture measured bounds before adding the unbounded model curves.
+            measured_xlim, measured_ylim = ax.get_xlim(), ax.get_ylim()
+    ax.set_xlim(measured_xlim)
+    ax.set_ylim(measured_ylim)
+
+    secondary = fig.add_subplot(111, label='free_population_pair', frameon=False)
+    secondary.set_yscale('log')
+    secondary.xaxis.tick_top()
+    secondary.xaxis.set_label_position('top')
+    secondary.yaxis.set_visible(False)
+    secondary.set_xlabel(r'Energy, $E_F$ (eV)')
+    valid = np.isfinite(model.n_f) & _finite_positive(model.p_f)
+    secondary.plot(np.where(valid, model.n_f, np.nan),
+                   np.where(valid, model.p_f, np.nan),
+                   color='C5', label=r'$p_{fm}$')
+    # Fit the secondary coordinates to the same free-charge window, while
+    # retaining the complete model line for clipping at the display bounds.
+    window = valid & (model.p_f >= measured_xlim[0]) & (model.p_f <= measured_xlim[1])
+    secondary.dataLim = Bbox.null()
+    if window.any():
+        secondary.update_datalim(np.column_stack((model.n_f[window], model.p_f[window])))
+    secondary.autoscale_view()
+    secondary.set_ylim(measured_ylim)
+    secondary.invert_xaxis()
+    _style(ax, xlabel=r'Free charge, $n_f$ (m$^{-3}$)',
+           ylabel=r'Trapped charge, $n_t$ (m$^{-3}$)')
+    handles, labels = ax.get_legend_handles_labels()
+    extra_handles, extra_labels = secondary.get_legend_handles_labels()
+    ax.legend(handles + extra_handles, labels + extra_labels, frameon=False)
+    return fig, (ax, secondary)
+
+
 def plot_model_fermi_level(model, fermi):
     """M3 hole energy separation versus the M2 absolute free-hole density.
 
@@ -221,6 +291,91 @@ def plot_model_fermi_level(model, fermi):
     _style(ax, xlabel=r'Free-hole concentration, $p_f$ (m$^{-3}$)',
            ylabel=r'Fermi level separation, $E_F-E_v$ (eV)')
     return fig, ax
+
+
+def plot_fermi_energy(measured, model_current, model_levels):
+    """Absolute measured/model Fermi energies versus hole-branch voltage.
+
+    Linear axes fit the measured points and equilibrium reference; the full
+    model curve remains available but does not widen the display limits.
+    """
+    if not np.array_equal(model_current.E_F, model_levels.E_F):
+        raise ValueError('Model voltage and energy must share the E_F sweep.')
+    fig, ax = plt.subplots(figsize=_FIGSIZE)
+    valid = np.isfinite(measured.U) & np.isfinite(measured.E_F)
+    ax.plot(np.where(valid, measured.U, np.nan),
+            np.where(valid, measured.E_F, np.nan), 'o', ms=4,
+            label=r'$E_F$')
+    ax.axhline(model_levels.E_F0, color='0.5', ls='--', label=r'$E_{F0}$')
+    xlim, ylim = ax.get_xlim(), ax.get_ylim()
+    valid = np.isfinite(model_current.U_p) & np.isfinite(model_levels.E_F)
+    ax.plot(np.where(valid, model_current.U_p, np.nan),
+            np.where(valid, model_levels.E_F, np.nan), label=r'$E_{Fm}$')
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+    _style(ax, xlabel=_U_AXIS, ylabel=r'Energy, $E_F$ (eV)')
+    return fig, ax
+
+
+def plot_density_energy(energy, dos, carriers, measured_levels, model, derivatives):
+    """DOS, density derivatives and carrier populations versus absolute energy.
+
+    Keep the declared series-to-Y-axis grouping; both Y axes are logarithmic.
+    The common linear energy window follows measured energies. Primary Y
+    bounds follow measured derivatives, secondary Y measured holes.
+    """
+    fig, ax = plt.subplots(figsize=(9, 5.5))
+    right = ax.twinx()
+    ax.set_yscale('log')
+    right.set_yscale('log')
+    e_meas = measured_levels.E_F
+    series = [
+        (ax, energy, dos, r'$g(E)$', '-'),
+        (ax, e_meas, derivatives.measured, r'$dp/dE_F$', 'o'),
+        (right, model.E_F, model.n_t, r'$n_{tm}$', '-'),
+        (ax, model.E_F, derivatives.model, r'$dp_m/dE_F$', '-'),
+        (ax, model.E_F, model.p_t, r'$p_{tm}$', '-'),
+        (ax, model.E_F, model.p_f, r'$p_{fm}$', '-'),
+        (ax, model.E_F, model.n_f, r'$n_{fm}$', '-'),
+        (right, e_meas, carriers.p_t, r'$p_t$ (m$^{-3}$)', 'o'),
+        (right, e_meas, carriers.p_f, r'$p_f$ (m$^{-3}$)', 'o')]
+    handles = []
+    for i, (target, x, y, label, style) in enumerate(series):
+        x, y = np.asarray(x, float), np.asarray(y, float)
+        if x.shape != y.shape:
+            raise ValueError('Each energy series must match its density array.')
+        valid = np.isfinite(x) & _finite_positive(y)
+        # Keep the positive DOS floor as a below-axis endpoint, so the band
+        # edges descend out of view instead of stopping at the last sample.
+        line, = target.plot(np.where(valid, x, np.nan),
+                            np.where(valid, y, np.nan), style,
+                            color=f'C{i}', ms=3, label=label)
+        handles.append(line)
+    finite = e_meas[np.isfinite(e_meas)]
+    if not finite.size:
+        raise ValueError('No finite measured energies to determine display limits.')
+    span = np.ptp(finite)
+    pad = .05 * (span if span > 0 else max(abs(finite[0]), 1.))
+    lo, hi = finite.min() - pad, finite.max() + pad
+    # Rebuild bounds only from relevant data, without shortening plotted arrays.
+    for target, indices in ((ax, (1,)), (right, (7, 8))):
+        target.dataLim = Bbox.null()
+        for i in indices:
+            x, y = handles[i].get_data()
+            valid = np.isfinite(x) & _finite_positive(y) & (x >= lo) & (x <= hi)
+            if valid.any():
+                target.update_datalim(np.column_stack((x[valid], y[valid])))
+        target.autoscale_view(scalex=False, scaley=True)
+        target.yaxis.set_major_formatter(LogFormatterSciNotation())
+    ax.set_xlim(lo, hi)
+    ax.set_xlabel(r'Energy, $E$, $\Delta E_F$ (eV)')
+    ax.set_ylabel(r'$g(E),\ dn/dE_F$ (m$^{-3}$eV$^{-1}$)')
+    right.set_ylabel(r'$n_f,\ n_t$ (m$^{-3}$)')
+    ax.grid(True, which='major', alpha=.3)
+    ax.legend(handles=handles, frameon=False, loc='upper left',
+              bbox_to_anchor=(1.16, 1.))
+    fig.tight_layout()
+    return fig, (ax, right)
 
 
 def plot_model_current(model, *, measured=None):

@@ -8,7 +8,8 @@ from asclc_backend import (Measurements, load_measurements, current_density,
                            trailing_mean, local_gamma, effective_mobility,
                            carrier_densities, model_occupations, model_current_density,
                            valence_band_dos, conduction_band_dos, total_dos,
-                           K_B, E_CHARGE)
+                           K_B, E_CHARGE, fermi_level_absolute_shift,
+                           density_energy_derivative)
 
 
 @dataclass
@@ -119,6 +120,37 @@ class ModelFermiLevel:
     delta_E_v: np.ndarray
     delta_E_c: np.ndarray
     delta_E_F0: np.ndarray
+
+
+@dataclass
+class MeasuredFermiLevel:
+    U: np.ndarray
+    E_F: np.ndarray
+    N_v: np.ndarray
+    nondegenerate: np.ndarray
+
+
+def run_measured_fermi_level(carriers, *, material, temperature):
+    """Absolute-shift inversion on the same intervals as measured holes."""
+    ef, nv, valid = fermi_level_absolute_shift(
+        carriers.p_f, E_v=material['E_v'], m_eff_h=material['m_eff_p'],
+        temperature=temperature)
+    return MeasuredFermiLevel(carriers.U.copy(), ef, nv, valid)
+
+
+@dataclass
+class DensityDerivatives:
+    measured: np.ndarray
+    model: np.ndarray
+
+
+def run_density_derivatives(carriers, measured_levels, model):
+    """Derivatives of measured pf+pt and model excess total holes."""
+    if not np.array_equal(carriers.U, measured_levels.U, equal_nan=True):
+        raise ValueError('Measured energies and carriers must share intervals.')
+    return DensityDerivatives(
+        density_energy_derivative(measured_levels.E_F, carriers.p_f + carriers.p_t),
+        density_energy_derivative(model.E_F, model.p_s, model=True))
 
 
 def run_model_fermi_level(model, *, material):

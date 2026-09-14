@@ -445,6 +445,53 @@ def fermi_level(p_f, *, E_v, m_eff_h, temperature):
     return e_f, n_v, nondegenerate
 
 
+def fermi_level_absolute_shift(p_f, *, E_v, m_eff_h, temperature):
+    """Return Ev + abs(kT ln(abs(pf/Nv))), with unit multiplier.
+
+    Retain both absolute values, including folding above-Nv populations
+    above Ev. The validity flag still requires positive nondegenerate holes.
+    Zero/nonfinite populations or invalid temperatures return NaN, since
+    they do not define a finite logarithmic inversion.
+    """
+    p = np.asarray(p_f, dtype=float)
+    signed, nv, nondegenerate = fermi_level(
+        np.abs(p), E_v=E_v, m_eff_h=m_eff_h, temperature=temperature)
+    t = np.broadcast_to(np.asarray(temperature, dtype=float), p.shape)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        ef = E_v + np.abs(K_B * t / E_CHARGE * np.log(np.abs(p / nv)))
+    ef = np.where(np.isfinite(signed), ef, np.nan)
+    return ef, nv, nondegenerate & (p > 0)
+
+
+def density_energy_derivative(energy, density, *, model=False):
+    """Measured absolute secants or model negative three-point fitted slopes.
+
+    Return m^-3 eV^-1 at the first row of each interval/window. Missing
+    endpoints, repeated energies, or incomplete windows yield NaN; no rows
+    are sorted, joined across gaps, extrapolated, or resampled.
+    """
+    e, p = np.asarray(energy, float), np.asarray(density, float)
+    if e.ndim != 1 or p.shape != e.shape:
+        raise ValueError('Energy and density must be matching 1-D arrays.')
+    out = np.full(e.shape, np.nan)
+    if not model:
+        de, dp = np.diff(e), np.diff(p)
+        valid = np.isfinite(e[:-1]) & np.isfinite(e[1:])
+        valid &= np.isfinite(p[:-1]) & np.isfinite(p[1:]) & (de != 0)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            out[:-1] = np.where(valid, np.abs(dp / de), np.nan)
+    else:
+        for i in range(max(0, e.size - 2)):
+            x, y = e[i:i+3], p[i:i+3]
+            if not (np.isfinite(x).all() and np.isfinite(y).all()):
+                continue
+            if np.unique(x).size != 3:
+                continue
+            dx = x - x.mean()
+            out[i] = -np.dot(dx, y - y.mean()) / np.dot(dx, dx)
+    return out
+
+
 def trap_dos(energy, *, N_t, E_t, T_t):
     """Localized trap density of states (M1).
 
