@@ -48,6 +48,15 @@ T/(T_t+T) for T_t >= T and 0.5 for T_t < T. This discrepancy remains
 explicit; the implementation does not substitute the printed prescription
 or tune gamma. The backend takes gamma explicitly without a default.
 
+The two are distinguishable on the log/log chart. Eliminating q_L from the
+backend equations gives J = eps mu_0 Theta (1-gamma)(2-gamma)^2 U^2/L^3, so
+the curve sits at (8/9)(1-gamma)(2-gamma)^2 Theta times the Mott-Gurney
+value. Only gamma=1/2 makes that factor unity and Mott-Gurney a ceiling that
+Theta<=1 cannot breach. At the retained gamma=T_t/T the factor is 2.8859 and
+the curve crosses the unshifted reference. The chart keeps the retained
+gamma and instead reproduces the workbook's own reference amplitudes; see
+[the log/log current chart](current_loglog_chart.md).
+
 The workbook voltage columns `j(U)!B:C` use `n(E)!H:O`, which are M2
 n_t=n_s-n_f0 and p_t=p_s-p_f0. Current columns D:E multiply those voltages
 by the corresponding absolute free populations E:L and the drift prefactor.

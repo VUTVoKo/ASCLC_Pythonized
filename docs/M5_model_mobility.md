@@ -41,12 +41,12 @@ definitions. No clipping, revised density definitions, or fitting is introduced.
 existing `params['mu_0']`. It returns independent energy and mobility arrays.
 The same supplied microscopic mobility is applied separately to both
 carrier types, without introducing another material parameter.
-The notebook plots the two mobilities against the existing quasi-Fermi
-energy coordinate and registers the figure with the existing export step.
-M4 voltage/current construction is now present in the notebook; see
-[M4 derivation and limitations](M4_model_current.md). M5 keeps its energy-domain
-plot and its existing population ratio. It is not the voltage-domain
-comparison shown in article Fig. 3.
+M4 voltage/current construction is present in the notebook; see
+[M4 derivation and limitations](M4_model_current.md). M5 keeps its existing
+population ratio and has no figure of its own: the notebook pairs its hole
+mobility with the M4 hole voltage in the
+[drift mobility comparison](drift_mobility_chart.md), which is the only
+place the M5 arrays are plotted.
 
 Validation: all 69 existing tests (plus four subtests) pass, including the
 independent Mott–Gurney check of equation (4). Executing the notebook's

@@ -597,6 +597,18 @@ class ModelOccupations:
     p_f0: float
 
 
+def fermi_dirac_probabilities(relative_energy, *, thermal_energy):
+    """Occupied and empty state probabilities at E-E_F, with energies in eV.
+
+    Evaluate both logistic branches directly to preserve small tails without
+    cancellation in the empty-state probability.
+    """
+    if not np.isfinite(thermal_energy) or thermal_energy <= 0:
+        raise ValueError('thermal_energy must be finite and positive (eV).')
+    x = np.asarray(relative_energy, dtype=float) / thermal_energy
+    return np.exp(-np.logaddexp(0.0, x)), np.exp(-np.logaddexp(0.0, -x))
+
+
 def model_occupations(energy, E_F, *, g_total, g_conduction, g_valence,
                       E_F0, thermal_energy):
     """M2 rectangular occupation sums on a descending energy grid.

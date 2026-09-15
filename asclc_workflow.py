@@ -237,14 +237,14 @@ def run_model_mobility(model, *, mu_0):
 
 
 def export_results(result, figures, directory):
-    """Save each named figure as PNG/PDF/SVG plus the measured CSV.
+    """Save each named figure as PNG/SVG plus the measured CSV.
 
     ``figures`` maps a base filename (no extension) to a Matplotlib figure.
     """
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
     for name, figure in figures.items():
-        for extension in ('png', 'pdf', 'svg'):
+        for extension in ('png', 'svg'):
             figure.savefig(directory / f'{name}.{extension}', dpi=240,
                            bbox_inches='tight')
     np.savetxt(directory / 'measured.csv',

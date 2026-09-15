@@ -3,12 +3,17 @@
 Inspected 2026-09-14: chart XML, sheet/drawing relationships and selected
 source-cell formulas in `data/SCLCKopecky.xlsx`; current `asclc_plotting.py`
 and `notebooks/asclc.ipynb`. IDs below are the stable chart XML numbers,
-not an inferred visual reading order. There are 15 native charts and now 13
-current notebook figures (12 at the initial inventory). Embedded images are not counted as charts.
+not an inferred visual reading order. There are 15 native charts. The notebook
+inventory below lists the figures present at that inspection, less the model
+effective mobility view and the trap DOS close-up, both removed at the user's
+request on 2026-09-15; figures added by later chart tasks are recorded in the
+task list. Embedded images are not counted as charts.
 
-Scope: match labels, series/quantities and linear/log scales. Calculate all
+Scope: 14 native source charts; the unlabelled n(E) chart on g(E),
+S1304:S1404 (#13), was excluded by the user on 2026-09-15.
+Match labels, series/quantities and linear/log scales. Calculate all
 plotted values from project measurement inputs and implementations, never
-from copied source chart data. Use automatic limits and independent styling.
+from copied source chart data. Use measured-data limits for comparisons and independent styling.
 Keep all existing parameters fixed. This is a task list, not implementation.
 
 ## Source chart inventory
@@ -45,42 +50,42 @@ Source label inconsistencies are preserved here and recorded below.
 | Measured current density | plot_measured_jv | j versus U; log/log | j (A/m²) — U (V) (#15) counterpart; labels need alignment |
 | Smoothed current density | plot_smoothed_jv | Raw j and centered mean versus U; log/log | Additional diagnostic |
 | Local slope | plot_local_gamma | gamma versus U, 1 and 1/2 guides; linear/linear | Additional diagnostic; fixed Y limits |
-| Effective mobility | plot_effective_mobility | Measured mobility and mu0 versus U; linear/log | Partial Drift mobility, μ (m²/V/s) — Voltage, U (V) (#1); model overlay absent |
-| Carrier concentrations | plot_carrier_densities | Measured pt and pf versus U, crossing annotations; linear/log | Partial charge density, nf, nt (m⁻³) — Voltage, U (V), linear/log (#4); model overlays absent |
+| Drift mobility | plot_effective_mobility | Measured mobility, model hole mobility and mu0 versus U; linear/log | Completed comparison (#1); expanded Y maximum by user request |
+| Carrier concentrations | plot_carrier_densities | Measured pt and pf plus model pt and pf versus hole voltage; linear/log | Reproduced comparison (#4); earlier measured-only diagnostic retained |
 | Carrier fraction | plot_carrier_fraction | Measured Theta versus U, 1 and 1/2 guides; linear/log | Partial Theta, Θ (-) — Voltage, U (V) (#9); model overlay absent |
-| Full DOS | plot_dos | Band/trap DOS plus total and energy markers; linear/log | Valenční pás, Vodivostní pás, Monoenergetická past (#12) counterpart with extra content |
-| Trap DOS close-up | plot_dos | Same quantities on close-up energy grid; linear/log | Additional view; not Unlabelled chart on g(E), source S1304:S1404 (#13) |
+| Full DOS | plot_dos | Valence-band, conduction-band and trap DOS plus energy markers; linear/log | Valenční pás, Vodivostní pás, Monoenergetická past (#12) counterpart with extra energy markers |
 | Model occupations | plot_model_occupations | pt, nt, pf, nf versus EF plus EF0 marker; linear/log | pt (EF), nt (EF), pf (EF), nf (EF) (#11) counterpart with extra reference |
 | Trapped charge versus free charge | plot_trapped_charge | Five primary log/log series plus independent reversed-linear/log secondary series | Reproduced source mapping; see [details](trapped_charge_chart.md) |
 | Model Fermi level | plot_model_fermi_level | EF-Ev versus pf, zero reference; log/linear | Does not reproduce Energy, EF (eV) — Voltage, U (V); legend EF - Ec (#7) |
-| Model current density | plot_model_current | Measured j and electron/hole currents versus respective voltages; log/log | Partial Current density, j (A/m²) — Voltage, U (V), log/log (#2); branch mapping and guides need review |
-| Model effective mobility | plot_model_mobility | Electron/hole mobilities versus EF and mu0; linear/log | Supporting calculation view; does not reproduce Drift mobility, μ (m²/V/s) — Voltage, U (V) (#1) |
+| Model current density | plot_model_current | Measured j, hole current and negated electron current versus hole voltage, m=1 and m=2 references; log/log | Implemented comparison (#2); measured-only limits |
 
-DOS views currently impose energy-domain X limits and a Y range relative to
-the maximum DOS. These and the fixed gamma range need review under the
-automatic-limit requirement. Extra figures are listed, not authorized for deletion.
+The fixed gamma range needs review under the automatic-limit requirement.
+Extra figures are listed, not authorized for deletion, except two the user
+removed on 2026-09-15: the energy-domain model effective mobility view, whose
+M5 calculation is retained for the drift mobility chart, and the trap DOS
+close-up, whose close-up grid is retained for the trap saturation check.
 
 ## Task list
 
 - [x] Inventory all 15 native source charts and 12 notebook figures.
 - [x] Record content/scales and identify partial, missing and additional views.
 - [ ] **j (A/m²) — U (V)** (#15): align axis labels (`U (V)`, `j (A/m²)`) and unnamed source series behavior; retain calculated measurement data and log/log scales.
-- [ ] **Drift mobility, μ (m²/V/s) — Voltage, U (V)** (#1): combine measured mobility, calculated model hole mobility versus voltage and mu0; match mobility notation and linear/log scales.
-- [ ] **Current density, j (A/m²) — Voltage, U (V), log/log** (#2): verify model voltage and current signs/branches against the referenced quantities; add both slope guides and align labels on log/log axes.
-- [ ] **Current density, j (A/m²) — Voltage, U (V), linear/log** (#3): provide measured-plus-hole-current view on linear/log axes.
-- [ ] **charge density, nf, nt (m⁻³) — Voltage, U (V), linear/log** (#4): add calculated model pt and pf to measured concentrations on linear/log axes; resolve source n/p label conflict.
-- [ ] **charge density, nf, nt (m⁻³) — Voltage, U (V), log/log** (#8): provide the same four carrier series on log/log axes.
+- [x] **Drift mobility, μ (m²/V/s) — Voltage, U (V)** (#1): complete and accepted by the user on 2026-09-15. Measured mobility, model hole mobility versus hole voltage and mu0 on linear/log axes; Y maximum expanded to 10^-2 m²/V/s at user request. See [mapping and validation](drift_mobility_chart.md).
+- [x] **Current density, j (A/m²) — Voltage, U (V), log/log** (#2): implemented both model series against hole voltage, the electron sign reversal, and physical m=1/m=2 reference curves with measured-only limits. Awaiting user review. See [mapping and validation](current_loglog_chart.md).
+- [x] **Current density, j (A/m²) — Voltage, U (V), linear/log** (#3): complete and accepted by the user on 2026-09-15. Measured-plus-hole-current view with X limits 0–4 V and logarithmic Y limits 10^-8–10^0 A/m². See [mapping and validation](hole_current_chart.md).
+- [x] **charge density, nf, nt (m⁻³) — Voltage, U (V), linear/log** (#4): complete and accepted by the user on 2026-09-15. Measured and model hole densities with user bounds 0–4 V and 10^10–10^18 m⁻³; source n/p label mismatch retained and explained. See [mapping and validation](charge_density_chart.md).
+- [x] **charge density, nf, nt (m⁻³) — Voltage, U (V), log/log** (#8): complete and accepted by the user on 2026-09-15. Same four carrier series on log/log axes, with measured-only limits. See [mapping and validation](charge_density_chart.md#loglog-view).
 - [x] **Trapped charge, nt (m⁻³) — Free charge, nf (m⁻³)** (#5): reproduced all six series and independent axes using calculated arrays; retained the source label mismatch. See [mapping and validation](trapped_charge_chart.md).
 - [x] **g(E), dn/dEF (m⁻³eV⁻¹) — Energy, E, ΔEF (eV)** (#6): implemented measured secants, model three-point slopes and all nine series. See [mapping and validation](density_energy_chart.md).
 - [x] **Energy, EF (eV) — Voltage, U (V); legend EF - Ec** (#7): implemented the absolute-shift measured formula, model hole-branch energy and EF0 reference on linear axes. See [implementation and validation](fermi_energy_chart.md).
 - [x] **Theta, Θ (-) — Voltage, U (V)** (#9): added model fraction on the hole-voltage branch, with measured limits and linear/log scales. See [mapping and validation](theta_chart.md).
-- [ ] **U (nt), U (pt), j (nf), j (pf)** (#10): provide calculated voltage and current branches versus energy with separate logarithmic vertical axes; identify series-to-axis assignment.
-- [ ] **pt (EF), nt (EF), pf (EF), nf (EF)** (#11): align four occupation labels and content; review additional EF0 marker against source content.
-- [ ] **Valenční pás, Vodivostní pás, Monoenergetická past** (#12): align the three DOS components and labels; review additional total DOS and energy markers against source content.
-- [ ] **Unlabelled chart on g(E), source S1304:S1404** (#13): establish the mathematical definition of n(E) and intended X coordinate before reproducing this incomplete source chart; do not copy its numerical series.
-- [ ] **fFD(E), 1-fFD(E)** (#14): add calculated Fermi-Dirac occupation and complement on linear/linear axes using existing parameters.
+- [x] **U (nt), U (pt), j (nf), j (pf)** (#10): complete and accepted by the user on 2026-09-15. Labelled absolute Fermi-energy axis, voltage branches on the left logarithmic axis (minimum 1 V), and current branches on the right logarithmic axis (minimum 1 A/m²); upper and horizontal limits remain automatic. See [mapping and validation](transport_energy_chart.md).
+- [x] **pt (EF), nt (EF), pf (EF), nf (EF)** (#11): aligned four occupation labels, removed additional EF0 marker and axis titles; preserved existing notebook bounds. Implemented, awaiting user review. See [mapping and validation](occupation_chart.md).
+- [ ] **Valenční pás, Vodivostní pás, Monoenergetická past** (#12): align the three DOS components and labels; review the additional energy markers against source content. The total DOS series was removed at the user's request on 2026-09-15.
+- **Excluded by the user, 2026-09-15: Unlabelled chart on g(E), source S1304:S1404** (#13). Not needed; removed from remaining work.
+- [x] **fFD(E), 1-fFD(E)** (#14): complete and accepted by the user on 2026-09-15. Calculated occupation and complement versus labelled relative energy on linear/linear axes, with labelled probability axis and X limits −1 to 1 eV; existing parameters and grid preserved. See [mapping and validation](fermi_dirac_chart.md).
 - [ ] Review extra diagnostics separately; do not count them as source-chart matches or remove them implicitly.
-- [ ] Apply automatic limits to reproduction charts and review existing forced limits; preserve numerical grids and other user settings.
+- [ ] Apply measured-data limits to comparison charts, honoring explicit user bounds; preserve numerical grids and other user settings.
 - [ ] Validate each resulting chart's quantities, labels, series references and scales; validate any new calculations independently of source cached values.
 
 ## Source ambiguities to resolve, not silently reproduce
@@ -97,7 +102,7 @@ automatic-limit requirement. Extra figures are listed, not authorized for deleti
 - g(E), dn/dEF (m⁻³eV⁻¹) — Energy, E, ΔEF (eV) (#6) has a `#REF!` series-name reference; its X/Y references still
   point to `MODEL!AQ/AR`. Several charts have unequal X/Y range lengths.
   Do not reproduce those defects by extending grids or copying caches.
-- Unlabelled chart on g(E), source S1304:S1404 (#13) has no explicit X series or axis titles; its Y range is
+- Excluded chart, retained here for provenance only: Unlabelled chart on g(E), source S1304:S1404 (#13) has no explicit X series or axis titles; its Y range is
   `'g(E)'!S1304:S1404`, with column heading n(E). It cannot be identified as
   the existing DOS close-up from this evidence.
 - Charts 10–14 lack axis titles in the chart definitions. Their quantities

@@ -1,5 +1,20 @@
 # Project instructions
 
+## Chart limits must follow measured data
+
+- **For every measured/model comparison, set axis limits from measured data
+  only. Model curves must never expand the displayed range.** Determine the
+  measured limits before adding model curves, then preserve those limits.
+- Explicit user-specified display bounds take precedence over automatic
+  measured-data limits. Preserve each chart's linear/log axis scales.
+- Apply this rule to all comparison charts, not just individual charts named
+  in earlier discussions. For charts without measured data, use automatic
+  limits unless the user specifies bounds.
+- Display limits do not authorize changing calculation parameters, numerical
+  grids, or calculated arrays. Model values outside the view remain intact.
+- Chart-specific bounds and source details are recorded in
+  [docs/chart_scope.md](docs/chart_scope.md).
+
 ## Communication rules
 
 - Keep code, tests, notebook text, API names, and plot labels independent of

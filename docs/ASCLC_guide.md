@@ -4,9 +4,10 @@ Model step M4 is available through `run_model_current` and `plot_model_current`.
 It retains gamma = T_t/T and the established M2 density mapping; see
 [M4 derivation and limitations](M4_model_current.md).
 
-Model step M5 is available as `run_model_mobility(model, mu_0=params['mu_0'])`
-and `plot_model_mobility`. It evaluates both M2 carrier ratios at the unchanged
-microscopic mobility. See [M5 derivation and limits](M5_model_mobility.md).
+Model step M5 is available as `run_model_mobility(model, mu_0=params['mu_0'])`.
+It evaluates both M2 carrier ratios at the unchanged microscopic mobility and
+supplies the model hole mobility of the drift mobility chart. See
+[M5 derivation and limits](M5_model_mobility.md).
 
 ## Scope
 
@@ -116,19 +117,18 @@ return data for the frontend to display:
   `gamma`, `mu_eff`, the `j` both were computed from, and `window`),
   `run_carrier_densities` (step A4 on those same rows, returning a `Carriers`
   with `p_f`, `p_t`, `p_s`, `theta`, the `mu_0` and `theta_model` used), and
-  `export_results` (figures as PNG/PDF/SVG plus `measured.csv`).
+  `export_results` (figures as PNG/SVG plus `measured.csv`).
 - `asclc_plotting.py`: `plot_measured_jv`, `plot_smoothed_jv(result,
   window=...)` (a centred window-point mean of `J` over the raw markers, at the
   same voltages), `plot_local_gamma`, `plot_effective_mobility`,
   `plot_carrier_densities` (the axes of Fig. 4a, with any `p_t = p_f` crossing
   marked), `plot_carrier_fraction` (`theta`, the axes of Fig. S19) and
-  `plot_dos(energy, ...)` (the three `g(E)` distributions and their sum against
-  energy, the axes of Fig. S6), each returning `(figure, axes)` in plain
-  publication styling with the notation of the published equations. `plot_dos`
+  `plot_dos(energy, ...)` (the three `g(E)` distributions against energy, the
+  axes of Fig. S6), each returning `(figure, axes)` in plain publication
+  styling with the notation of the published equations. `plot_dos`
   draws each band only where it exists, marks only the band edges and `E_t` that
   fall inside the energy grid it is given, and holds the view to that grid, so
-  passing a narrow grid gives a close-up of the trap. It is not called by the
-  notebook.
+  passing a narrow grid gives a close-up of the trap.
 
 ## CSV format
 
@@ -167,10 +167,10 @@ Temperatures are in K — the workbook's column N, `T(°C) + 273.15`.
 6. `run_carrier_densities(mobility, material=material, mu_0=params["mu_0"])`
    — step A4 on the same rows; then `plot_carrier_densities`,
    `plot_carrier_fraction` and `equal_density_voltage`.
-7. `plot_dos(...)` — the `g(E)` sheet's three distributions and their sum, over
-   the band gap and again on a grid narrow enough to resolve the trap. The trap
-   parameters `N_t`, `E_t` and `T_t` sit in the notebook's `params` dict beside
-   `mu_0`, as `examples/MAPbBr3_S2.params` and `MODEL!B29/B25/B30` hold them.
+7. `plot_dos(...)` — the `g(E)` sheet's three distributions over the band gap.
+   The trap parameters `N_t`, `E_t` and `T_t` sit in the notebook's `params`
+   dict beside `mu_0`, as `examples/MAPbBr3_S2.params` and `MODEL!B29/B25/B30`
+   hold them.
 8. `export_results(result, figures, directory)` to write the figures and
    `measured.csv` (columns `U_V,I_A,V_V,J_Am2`).
 
